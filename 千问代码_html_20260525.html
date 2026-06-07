@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家居日用 · 三级分类商品分层深度经营分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #f0f2f5;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --text-primary: #1a1a2e;
+            --text-secondary: #5c6b7f;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+            --radius: 16px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', -apple-system, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 32px 24px;
+        }
+        .dashboard { max-width: 1560px; margin: 0 auto; }
+        
+        /* Header */
+        .header { text-align: center; margin-bottom: 36px; padding: 16px 0; }
+        .header h1 {
+            font-size: 30px; font-weight: 700; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #3b82f6 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header p { color: var(--text-secondary); margin-top: 6px; font-size: 14px; }
+
+        /* KPI Row */
+        .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+        .kpi-card {
+            background: var(--bg-card); backdrop-filter: blur(10px);
+            border-radius: var(--radius); padding: 22px 20px;
+            box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
+        }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .kpi-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-value { font-size: 32px; font-weight: 700; margin: 6px 0 2px; letter-spacing: -1px; }
+        .kpi-sub { font-size: 11px; color: var(--text-secondary); }
+        .c-blue { color: var(--accent-blue); }
+        .c-green { color: var(--accent-green); }
+        .c-orange { color: var(--accent-orange); }
+        .c-red { color: var(--accent-red); }
+        .c-purple { color: var(--accent-purple); }
+
+        /* Grid & Cards */
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 20px; }
+        .card {
+            background: var(--bg-card); backdrop-filter: blur(10px);
+            border-radius: var(--radius); padding: 24px;
+            box-shadow: var(--shadow-md); border: 1px solid rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
+        }
+        .card:hover { box-shadow: var(--shadow-lg); }
+        .full-width { grid-column: span 2; }
+        .chart-box { width: 100%; height: 460px; }
+        .chart-box.tall { height: 560px; }
+        .chart-box.xtall { height: 680px; }
+
+        /* Decision Box */
+        .decision {
+            margin-top: 16px; padding: 16px 20px; border-radius: 12px;
+            font-size: 13px; line-height: 1.9; position: relative; overflow: hidden;
+        }
+        .decision::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+        .decision.blue { background: linear-gradient(135deg, #eff6ff 0%, #f8faff 100%); }
+        .decision.blue::before { background: var(--accent-blue); }
+        .decision.green { background: linear-gradient(135deg, #ecfdf5 0%, #f7fef9 100%); }
+        .decision.green::before { background: var(--accent-green); }
+        .decision.orange { background: linear-gradient(135deg, #fffbeb 0%, #fffef5 100%); }
+        .decision.orange::before { background: var(--accent-orange); }
+        .decision.red { background: linear-gradient(135deg, #fef2f2 0%, #fffafa 100%); }
+        .decision.red::before { background: var(--accent-red); }
+        .decision.purple { background: linear-gradient(135deg, #f5f3ff 0%, #faf8ff 100%); }
+        .decision.purple::before { background: var(--accent-purple); }
+        .decision strong { font-weight: 700; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-right: 4px; vertical-align: middle; }
+        .tag-action { background: rgba(59,130,246,0.12); color: var(--accent-blue); }
+        .tag-warn { background: rgba(239,68,68,0.12); color: var(--accent-red); }
+        .tag-ok { background: rgba(16,185,129,0.12); color: var(--accent-green); }
+        .tag-star { background: rgba(139,92,246,0.12); color: var(--accent-purple); }
+
+        /* Table Styles */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+        .data-table th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        .data-table td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; }
+        .data-table tr:hover td { background: #f8fafc; }
+        .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .data-table .highlight { font-weight: 700; }
+        .data-table .cat-l2 { font-weight: 600; color: var(--text-primary); background: #f8fafc; }
+        .data-table .cat-l3 { padding-left: 24px; color: var(--text-secondary); }
+        .bar-cell { position: relative; }
+        .bar-bg { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 6px; border-radius: 3px; opacity: 0.3; }
+
+        @media (max-width: 1200px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 900px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .grid { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+            body { padding: 16px; }
+            .header h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <h1>家居日用 · 三级分类商品分层深度经营分析</h1>
+        <p>1,174 SKU · 929.8万 GMV · 315.5万 GP · 4大二级分类 × 30个三级分类 × 4层商品分层</p>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="kpi-label">总 GMV / GP</div>
+            <div class="kpi-value c-blue">929.8<span style="font-size:16px;font-weight:400;">万</span></div>
+            <div class="kpi-sub">GP 315.5万 · GPM <span class="c-green">33.93%</span></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">结构品冗余度</div>
+            <div class="kpi-value c-red">88.6<span style="font-size:16px;font-weight:400;">%</span></div>
+            <div class="kpi-sub">1040支SKU仅贡献46.9% GMV</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">流量品能效倍数</div>
+            <div class="kpi-value c-blue">6.1<span style="font-size:16px;font-weight:400;">x</span></div>
+            <div class="kpi-sub">单品GMV能效 vs 整体均值1.0</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">最高GPM三级类目</div>
+            <div class="kpi-value c-green">挂钩粘钩</div>
+            <div class="kpi-sub">GPM <span class="c-green">54.01%</span> · 但能效仅0.4</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">最高能效三级单品</div>
+            <div class="kpi-value c-purple">拖把(流量)</div>
+            <div class="kpi-sub">单品能效 <span class="c-purple">15.3</span> · GPM 27.4%</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <!-- 1. 正态分布 -->
+        <div class="card full-width">
+            <div id="normalChart" class="chart-box tall"></div>
+            <div class="decision red">
+                <span class="tag tag-warn">淘汰预警</span>
+                <strong>三级分类维度验证长尾堆积：</strong> 收纳袋/密封袋（183支结构品，能效0.4）、浴室用品（63支结构品，能效0.4）、非医用口罩（33支结构品，能效0.3）是三大重灾区。三者合计279支结构品占全品类23.8%，建议以能效0.3为硬线首批淘汰约120支。<br>
+                <span class="tag tag-star">明星单品</span>
+                <strong>拖把流量品(15.3)、扫把簸箕流量品(14.9)、雨伞雨具流量品(10.5)</strong> 三支超级爆款撑起清洁+生活日用基本盘，但GPM均低于30%。需立即启动关联推荐高毛利结构品（如抹布GPM 41%、鞋套GPM 40%）提升连带利润。
+            </div>
+        </div>
+
+        <!-- 2. 帕累托 -->
+        <div class="card">
+            <div id="paretoChart" class="chart-box"></div>
+            <div class="decision blue">
+                <span class="tag tag-action">集中度提升</span>
+                Top 11.2% SKU贡献52.7% GMV。三级分类中<strong>雨伞雨具</strong>（76支SKU贡献21.7% GMV）和<strong>衣架/衣夹</strong>（69支SKU贡献9.3% GMV）是头部集中度的核心支撑。建议将这两个品类的流量品曝光再集中15%，同时从销售品中选拔3-5支升级为流量品候选。
+            </div>
+        </div>
+
+        <!-- 3. GP vs GMV -->
+        <div class="card">
+            <div id="gpGmvChart" class="chart-box"></div>
+            <div class="decision green">
+                <span class="tag tag-ok">利润安全垫</span>
+                结构品GP贡献率(50.3%) > GMV占比(46.9%)，长尾承担了超额利润。三级分类中<strong>挂钩粘钩(GPM 54%)、墙贴(GPM 42%)、香薰(GPM 40%)</strong>是高利代表，但能效均≤0.6。建议对这三个品类的高GPM结构品给予搜索加权和内容种草预算，将其中5-8支推入销售品梯队。
+            </div>
+        </div>
+
+        <!-- 4. 三级分类GMV TOP15堆叠 -->
+        <div class="card full-width">
+            <div id="stackedBar" class="chart-box xtall"></div>
+            <div class="decision orange">
+                <span class="tag tag-warn">品类失衡诊断</span>
+                <strong>收纳袋/密封袋：</strong> 192支SKU仅贡献7.65% GMV，结构品占比95.3%，是全场最大"虚胖"品类。建议强制精简至120支以内，保留GPM Top 100 + 新品测试20支。<br>
+                <strong>清洁工具-拖把/扫把：</strong> 流量品效能极高(15.3/14.9)但GPM不足28%。需在详情页增加高毛利配件（抹布、替换头）的组合推荐，目标连带率提升至25%+。<br>
+                <strong>家装软饰-居家镜子：</strong> 仅2支SKU却贡献0.62% GMV，销售品能效7.0远超品类均值。建议扩充至8-10支SKU，作为软饰品类的突破口。
+            </div>
+        </div>
+
+        <!-- 5. 雷达图 -->
+        <div class="card">
+            <div id="radarChart" class="chart-box"></div>
+            <div class="decision blue">
+                <span class="tag tag-action">品类角色重定义</span>
+                <strong>生活日用</strong>五项指标最均衡，是现金牛；<strong>清洁工具</strong>规模第一但毛利短板明显，需供应链降本；<strong>收纳整理</strong>毛利最优(37.4%)但结构品过重，精简后有望成为第二利润引擎；<strong>家装软饰</strong>体量过小(5%)，建议聚焦香薰+镜子两个三级品类做深，其余收缩为补充。
+            </div>
+        </div>
+
+        <!-- 6. 气泡矩阵 -->
+        <div class="card">
+            <div id="bubbleChart" class="chart-box"></div>
+            <div class="decision purple">
+                <span class="tag tag-star">三级品类机会点</span>
+                <strong>右上象限缺口：</strong> 目前无三级品类同时满足高GPM+高流量依赖。<strong>马桶吸/刷</strong>(GPM 36.9%, 流量品效能6.6)和<strong>衣架/衣夹</strong>(GPM 35.7%, 流量品效能6.3)最接近理想状态，应作为重点培育对象。<br>
+                <strong>左下危险区：</strong> 保暖防护(GPM 27.5%, 能效0.9)、热水袋(GPM 32.8%, 能效0.3)、洗衣袋(GPM 44.5%, 能效0.2)属于季节性弱品类，建议仅在旺季前备货，平时保持最低库存。
+            </div>
+        </div>
+
+        <!-- 7. 三级分类明细表 -->
+        <div class="card full-width">
+            <h3 style="font-size:17px;font-weight:700;margin-bottom:16px;color:var(--text-primary);">📋 三级分类 × 商品分层核心指标明细</h3>
+            <div style="overflow-x:auto;">
+                <table class="data-table" id="detailTable">
+                    <thead>
+                        <tr>
+                            <th>二级分类</th>
+                            <th>三级分类</th>
+                            <th>商品分层</th>
+                            <th class="num">SKU数</th>
+                            <th class="num">GMV(万)</th>
+                            <th class="num">GMV占比</th>
+                            <th class="num">GP(万)</th>
+                            <th class="num">GPM</th>
+                            <th class="num">单品能效</th>
+                            <th>诊断标签</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div class="decision blue" style="margin-top:16px;">
+                <span class="tag tag-action">读表指南</span>
+                红色高亮 = 需重点关注（效能过低/GPM异常/结构品过多）；绿色高亮 = 标杆单品（可复制经验）；黄色高亮 = 潜力款（值得资源倾斜培育）。建议按"单品能效"升序排列，优先处理底部低效SKU。
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== 全局配置 ====================
+const T = {
+    colors: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'],
+    ts: { fontFamily: "'Inter','Noto Sans SC',sans-serif", color: '#5c6b7f' },
+    title: { fontSize: 15, fontWeight: 600, color: '#1a1a2e', left: 'center', top: 0 },
+    tip: { backgroundColor:'rgba(255,255,255,0.96)', borderColor:'#e5e7eb', borderWidth:1, textStyle:{color:'#1a1a2e',fontSize:12}, extraCssText:'box-shadow:0 8px 24px rgba(0,0,0,0.12);border-radius:10px;padding:12px 16px;' }
+};
+function initC(id){ const el=document.getElementById(id); if(!el)return null; const c=echarts.init(el); window.addEventListener('resize',()=>c.resize()); return c; }
+
+// ==================== 原始数据 ====================
+const rawData = [
+    // 家装软饰
+    {l2:'家装软饰',l3:'居家镜子',layer:'结构品&差异品',sku:1,gmv:0.1,gp:0.0,gpm:29.84,eff:0.2},
+    {l2:'家装软饰',l3:'居家镜子',layer:'销售品',sku:1,gmv:5.6,gp:1.0,gpm:18.65,eff:7.0},
+    {l2:'家装软饰',l3:'墙贴/装饰贴',layer:'结构品&差异品',sku:14,gmv:3.5,gp:1.5,gpm:42.40,eff:0.3},
+    {l2:'家装软饰',l3:'饰品摆件',layer:'结构品&差异品',sku:4,gmv:0.2,gp:0.1,gpm:45.65,eff:0.0},
+    {l2:'家装软饰',l3:'相框/照片墙',layer:'结构品&差异品',sku:12,gmv:5.1,gp:2.2,gpm:43.35,eff:0.5},
+    {l2:'家装软饰',l3:'香薰',layer:'流量品',sku:1,gmv:3.4,gp:1.6,gpm:46.21,eff:4.3},
+    {l2:'家装软饰',l3:'香薰',layer:'销售品',sku:1,gmv:3.3,gp:1.3,gpm:39.96,eff:4.2},
+    {l2:'家装软饰',l3:'香薰',layer:'结构品&差异品',sku:31,gmv:9.2,gp:3.5,gpm:37.87,eff:0.4},
+    {l2:'家装软饰',l3:'装饰钟表',layer:'结构品&差异品',sku:3,gmv:2.6,gp:0.8,gpm:30.52,eff:1.1},
+    {l2:'家装软饰',l3:'桌布',layer:'销售品',sku:2,gmv:4.0,gp:1.1,gpm:27.62,eff:2.5},
+    {l2:'家装软饰',l3:'桌布',layer:'结构品&差异品',sku:26,gmv:9.5,gp:3.3,gpm:34.35,eff:0.5},
+    // 清洁工具
+    {l2:'清洁工具',l3:'玻璃擦',layer:'结构品&差异品',sku:4,gmv:2.8,gp:1.3,gpm:46.30,eff:0.9},
+    {l2:'清洁工具',l3:'家务手套',layer:'流量品',sku:1,gmv:3.0,gp:1.1,gpm:36.79,eff:3.8},
+    {l2:'清洁工具',l3:'家务手套',layer:'结构品&差异品',sku:2,gmv:0.9,gp:0.3,gpm:36.82,eff:0.6},
+    {l2:'清洁工具',l3:'家务手套',layer:'销售品',sku:2,gmv:3.2,gp:1.2,gpm:36.97,eff:2.0},
+    {l2:'清洁工具',l3:'垃圾袋',layer:'销售品',sku:1,gmv:1.3,gp:0.4,gpm:30.54,eff:1.6},
+    {l2:'清洁工具',l3:'垃圾袋',layer:'流量品',sku:4,gmv:19.3,gp:4.4,gpm:22.84,eff:6.1},
+    {l2:'清洁工具',l3:'垃圾袋',layer:'结构品&差异品',sku:35,gmv:26.7,gp:9.4,gpm:35.18,eff:1.0},
+    {l2:'清洁工具',l3:'垃圾桶',layer:'流量品',sku:2,gmv:9.3,gp:2.3,gpm:25.14,eff:5.9},
+    {l2:'清洁工具',l3:'垃圾桶',layer:'销售品',sku:4,gmv:9.7,gp:2.9,gpm:30.33,eff:3.1},
+    {l2:'清洁工具',l3:'垃圾桶',layer:'结构品&差异品',sku:22,gmv:9.7,gp:3.0,gpm:31.17,eff:0.6},
+    {l2:'清洁工具',l3:'脸盆/水桶',layer:'流量品',sku:1,gmv:3.4,gp:0.8,gpm:23.46,eff:4.3},
+    {l2:'清洁工具',l3:'脸盆/水桶',layer:'销售品',sku:3,gmv:6.0,gp:1.2,gpm:20.71,eff:2.5},
+    {l2:'清洁工具',l3:'脸盆/水桶',layer:'结构品&差异品',sku:57,gmv:28.9,gp:8.8,gpm:30.32,eff:0.6},
+    {l2:'清洁工具',l3:'马桶吸/刷',layer:'销售品',sku:1,gmv:1.0,gp:0.3,gpm:28.02,eff:1.3},
+    {l2:'清洁工具',l3:'马桶吸/刷',layer:'流量品',sku:2,gmv:10.5,gp:4.2,gpm:40.14,eff:6.6},
+    {l2:'清洁工具',l3:'马桶吸/刷',layer:'结构品&差异品',sku:11,gmv:10.9,gp:3.8,gpm:34.57,eff:1.2},
+    {l2:'清洁工具',l3:'抹布/百洁布/钢丝球',layer:'销售品',sku:2,gmv:3.6,gp:1.5,gpm:40.35,eff:2.3},
+    {l2:'清洁工具',l3:'抹布/百洁布/钢丝球',layer:'流量品',sku:4,gmv:8.2,gp:2.7,gpm:33.38,eff:2.6},
+    {l2:'清洁工具',l3:'抹布/百洁布/钢丝球',layer:'结构品&差异品',sku:32,gmv:9.7,gp:4.0,gpm:41.10,eff:0.4},
+    {l2:'清洁工具',l3:'其他清洁用品',layer:'销售品',sku:3,gmv:3.8,gp:1.6,gpm:41.94,eff:1.6},
+    {l2:'清洁工具',l3:'其他清洁用品',layer:'结构品&差异品',sku:18,gmv:7.2,gp:2.7,gpm:37.02,eff:0.5},
+    {l2:'清洁工具',l3:'清洁刷',layer:'利润品',sku:1,gmv:1.2,gp:0.4,gpm:35.83,eff:1.6},
+    {l2:'清洁工具',l3:'清洁刷',layer:'流量品',sku:1,gmv:1.6,gp:0.7,gpm:44.34,eff:2.1},
+    {l2:'清洁工具',l3:'清洁刷',layer:'销售品',sku:2,gmv:2.8,gp:1.1,gpm:39.22,eff:1.8},
+    {l2:'清洁工具',l3:'清洁刷',layer:'结构品&差异品',sku:14,gmv:6.3,gp:2.6,gpm:41.49,eff:0.6},
+    {l2:'清洁工具',l3:'扫把簸箕',layer:'流量品',sku:1,gmv:11.8,gp:2.8,gpm:23.35,eff:14.9},
+    {l2:'清洁工具',l3:'扫把簸箕',layer:'结构品&差异品',sku:4,gmv:3.4,gp:1.2,gpm:35.55,eff:1.1},
+    {l2:'清洁工具',l3:'扫把簸箕',layer:'销售品',sku:6,gmv:12.4,gp:4.6,gpm:36.75,eff:2.6},
+    {l2:'清洁工具',l3:'拖把',layer:'流量品',sku:3,gmv:36.4,gp:10.0,gpm:27.41,eff:15.3},
+    {l2:'清洁工具',l3:'拖把',layer:'销售品',sku:6,gmv:22.3,gp:7.1,gpm:31.71,eff:4.7},
+    {l2:'清洁工具',l3:'拖把',layer:'结构品&差异品',sku:19,gmv:17.2,gp:5.4,gpm:31.12,eff:1.1},
+    {l2:'清洁工具',l3:'围裙套袖',layer:'结构品&差异品',sku:9,gmv:2.3,gp:0.8,gpm:35.19,eff:0.3},
+    {l2:'清洁工具',l3:'鞋套',layer:'结构品&差异品',sku:9,gmv:5.3,gp:2.1,gpm:40.49,eff:0.7},
+    // 生活日用
+    {l2:'生活日用',l3:'保暖防护',layer:'结构品&差异品',sku:6,gmv:4.4,gp:1.2,gpm:27.48,eff:0.9},
+    {l2:'生活日用',l3:'非医用口罩',layer:'流量品',sku:1,gmv:2.2,gp:0.7,gpm:33.35,eff:2.8},
+    {l2:'生活日用',l3:'非医用口罩',layer:'结构品&差异品',sku:33,gmv:9.0,gp:4.4,gpm:48.77,eff:0.3},
+    {l2:'生活日用',l3:'非医用眼罩',layer:'销售品',sku:1,gmv:2.8,gp:1.3,gpm:44.23,eff:3.6},
+    {l2:'生活日用',l3:'非医用眼罩',layer:'结构品&差异品',sku:27,gmv:10.0,gp:3.8,gpm:37.61,eff:0.5},
+    {l2:'生活日用',l3:'缝纫针织/毛线',layer:'结构品&差异品',sku:11,gmv:3.4,gp:1.2,gpm:36.02,eff:0.4},
+    {l2:'生活日用',l3:'挂钩粘钩',layer:'流量品',sku:2,gmv:3.5,gp:2.2,gpm:62.53,eff:2.2},
+    {l2:'生活日用',l3:'挂钩粘钩',layer:'结构品&差异品',sku:42,gmv:9.4,gp:4.8,gpm:50.89,eff:0.3},
+    {l2:'生活日用',l3:'家用温度计/湿度计',layer:'结构品&差异品',sku:3,gmv:0.2,gp:0.0,gpm:26.10,eff:0.1},
+    {l2:'生活日用',l3:'洁耳工具',layer:'利润品',sku:1,gmv:2.0,gp:0.7,gpm:35.36,eff:2.5},
+    {l2:'生活日用',l3:'洁耳工具',layer:'销售品',sku:1,gmv:2.3,gp:1.0,gpm:41.98,eff:2.9},
+    {l2:'生活日用',l3:'洁耳工具',layer:'结构品&差异品',sku:12,gmv:6.3,gp:2.3,gpm:35.85,eff:0.7},
+    {l2:'生活日用',l3:'暖贴/暖宝宝',layer:'结构品&差异品',sku:15,gmv:3.9,gp:1.7,gpm:42.96,eff:0.3},
+    {l2:'生活日用',l3:'其他生活日用',layer:'流量品',sku:2,gmv:3.3,gp:1.4,gpm:43.05,eff:2.1},
+    {l2:'生活日用',l3:'其他生活日用',layer:'销售品',sku:3,gmv:5.8,gp:1.8,gpm:30.48,eff:2.4},
+    {l2:'生活日用',l3:'其他生活日用',layer:'结构品&差异品',sku:42,gmv:16.2,gp:5.9,gpm:36.34,eff:0.5},
+    {l2:'生活日用',l3:'热水袋',layer:'结构品&差异品',sku:5,gmv:1.2,gp:0.4,gpm:32.77,eff:0.3},
+    {l2:'生活日用',l3:'生活用剪',layer:'结构品&差异品',sku:4,gmv:1.7,gp:0.6,gpm:39.21,eff:0.5},
+    {l2:'生活日用',l3:'洗晒熨烫',layer:'结构品&差异品',sku:3,gmv:1.0,gp:0.4,gpm:44.13,eff:0.4},
+    {l2:'生活日用',l3:'衣架/衣夹',layer:'销售品',sku:4,gmv:7.5,gp:2.6,gpm:34.14,eff:2.4},
+    {l2:'生活日用',l3:'衣架/衣夹',layer:'流量品',sku:10,gmv:50.0,gp:17.6,gpm:35.27,eff:6.3},
+    {l2:'生活日用',l3:'衣架/衣夹',layer:'结构品&差异品',sku:55,gmv:29.1,gp:10.7,gpm:36.87,eff:0.7},
+    {l2:'生活日用',l3:'雨伞雨具',layer:'流量品',sku:7,gmv:58.3,gp:20.3,gpm:34.78,eff:10.5},
+    {l2:'生活日用',l3:'雨伞雨具',layer:'销售品',sku:20,gmv:98.6,gp:27.7,gpm:28.08,eff:6.2},
+    {l2:'生活日用',l3:'雨伞雨具',layer:'结构品&差异品',sku:49,gmv:44.6,gp:13.7,gpm:30.78,eff:1.1},
+    {l2:'生活日用',l3:'浴室用品',layer:'销售品',sku:2,gmv:2.2,gp:0.8,gpm:36.67,eff:1.4},
+    {l2:'生活日用',l3:'浴室用品',layer:'流量品',sku:7,gmv:20.1,gp:5.4,gpm:26.81,eff:3.6},
+    {l2:'生活日用',l3:'浴室用品',layer:'结构品&差异品',sku:63,gmv:18.1,gp:6.5,gpm:35.80,eff:0.4},
+    // 收纳整理
+    {l2:'收纳整理',l3:'防尘罩',layer:'销售品',sku:1,gmv:1.0,gp:0.5,gpm:49.32,eff:1.3},
+    {l2:'收纳整理',l3:'防尘罩',layer:'结构品&差异品',sku:10,gmv:2.0,gp:0.8,gpm:38.72,eff:0.3},
+    {l2:'收纳整理',l3:'其他收纳用品',layer:'结构品&差异品',sku:5,gmv:1.7,gp:0.8,gpm:44.54,eff:0.4},
+    {l2:'收纳整理',l3:'收纳袋/密封袋',layer:'流量品',sku:3,gmv:5.5,gp:2.4,gpm:44.00,eff:2.3},
+    {l2:'收纳整理',l3:'收纳袋/密封袋',layer:'销售品',sku:6,gmv:14.3,gp:5.0,gpm:34.85,eff:3.0},
+    {l2:'收纳整理',l3:'收纳袋/密封袋',layer:'结构品&差异品',sku:183,gmv:51.4,gp:21.2,gpm:41.27,eff:0.4},
+    {l2:'收纳整理',l3:'收纳架/收纳柜',layer:'销售品',sku:2,gmv:2.5,gp:1.0,gpm:42.36,eff:1.6},
+    {l2:'收纳整理',l3:'收纳架/收纳柜',layer:'结构品&差异品',sku:10,gmv:6.6,gp:2.4,gpm:36.29,eff:0.8},
+    {l2:'收纳整理',l3:'收纳箱盒/收纳篮',layer:'流量品',sku:2,gmv:10.4,gp:3.4,gpm:33.03,eff:6.6},
+    {l2:'收纳整理',l3:'收纳箱盒/收纳篮',layer:'销售品',sku:3,gmv:5.8,gp:2.4,gpm:40.71,eff:2.5},
+    {l2:'收纳整理',l3:'收纳箱盒/收纳篮',layer:'结构品&差异品',sku:109,gmv:43.3,gp:15.6,gpm:35.90,eff:0.5},
+    {l2:'收纳整理',l3:'洗衣袋',layer:'结构品&差异品',sku:11,gmv:1.9,gp:0.9,gpm:44.47,eff:0.2},
+    {l2:'收纳整理',l3:'鞋架',layer:'结构品&差异品',sku:11,gmv:4.6,gp:1.6,gpm:33.94,eff:0.5},
+    {l2:'收纳整理',l3:'衣帽架',layer:'销售品',sku:1,gmv:8.0,gp:2.2,gpm:27.45,eff:10.0},
+    {l2:'收纳整理',l3:'衣帽架',layer:'结构品&差异品',sku:4,gmv:4.7,gp:1.2,gpm:26.03,eff:1.5}
+];
+
+// ==================== 1. 正态分布 KDE ====================
+(function(){
+    const c = initC('normalChart'); if(!c) return;
+    function kde(x,m,s,w){ return w*Math.exp(-Math.pow(x-m,2)/(2*s*s))/(s*Math.sqrt(2*Math.PI)); }
+    const layers = {'流量品':{m:6.1,s:1.5,w:54},'销售品':{m:3.7,s:1.2,w:78},'结构品&差异品':{m:0.5,s:0.35,w:1040},'利润品':{m:2.1,s:0.5,w:2}};
+    const total = 1174;
+    const xD=[],yT=[],yTr=[],ySa=[],ySt=[],yPr=[];
+    for(let x=0;x<=18;x+=0.05){
+        xD.push(x.toFixed(2));
+        const vTr=kde(x,6.1,1.5,54/total), vSa=kde(x,3.7,1.2,78/total), vSt=kde(x,0.5,0.35,1040/total), vPr=kde(x,2.1,0.5,2/total);
+        yTr.push(vTr.toFixed(6)); ySa.push(vSa.toFixed(6)); ySt.push(vSt.toFixed(6)); yPr.push(vPr.toFixed(6));
+        yT.push((vTr+vSa+vSt+vPr).toFixed(6));
+    }
+    c.setOption({
+        title:{...T.title,text:'单品效能概率密度分布 (KDE加权模拟)'},
+        tooltip:{...T.tip,trigger:'axis'},
+        legend:{bottom:0,itemGap:16,textStyle:{fontSize:11}},
+        grid:{left:50,right:30,top:55,bottom:55},
+        xAxis:{type:'category',data:xD,name:'单品能效 (万元/SKU)',nameLocation:'center',nameGap:32,nameTextStyle:{fontSize:12,fontWeight:600},axisLabel:{interval:59,fontSize:10},splitLine:{show:false}},
+        yAxis:{type:'value',show:false},
+        series:[
+            {name:'整体',type:'line',data:yT,smooth:true,showSymbol:false,lineStyle:{width:3,color:'#1a1a2e'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(26,26,46,0.06)'},{offset:1,color:'rgba(26,26,46,0)'}])},z:10},
+            {name:'流量品(μ=6.1)',type:'line',data:yTr,smooth:true,showSymbol:false,lineStyle:{width:2.5,color:'#3b82f6'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(59,130,246,0.12)'},{offset:1,color:'rgba(59,130,246,0)'}])}},
+            {name:'销售品(μ=3.7)',type:'line',data:ySa,smooth:true,showSymbol:false,lineStyle:{width:2,color:'#10b981'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(16,185,129,0.1)'},{offset:1,color:'rgba(16,185,129,0)'}])}},
+            {name:'结构品(μ=0.5)',type:'line',data:ySt,smooth:true,showSymbol:false,lineStyle:{width:2.5,color:'#ef4444'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.12)'},{offset:1,color:'rgba(239,68,68,0)'}])}},
+            {name:'利润品(μ=2.1)',type:'line',data:yPr,smooth:true,showSymbol:false,lineStyle:{width:2,color:'#f59e0b',type:'dashed'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(245,158,11,0.08)'},{offset:1,color:'rgba(245,158,11,0)'}])}},
+            {type:'line',markArea:{silent:true,itemStyle:{color:'rgba(239,68,68,0.04)'},data:[[{'xAxis':'0.00'},{'xAxis':'0.30'}]],label:{show:true,position:'insideBottom',formatter:'⛔ 淘汰区\n能效<0.3',fontSize:10,color:'#ef4444',fontWeight:600,offset:[0,-8]}},data:[]},
+            {type:'line',markArea:{silent:true,itemStyle:{color:'rgba(59,130,246,0.04)'},data:[[{'xAxis':'10.00'},{'xAxis':'18.00'}]],label:{show:true,position:'insideBottom',formatter:'⭐ 超级爆款区\n能效>10',fontSize:10,color:'#3b82f6',fontWeight:600,offset:[0,-8]}},data:[]}
+        ]
+    });
+})();
+
+// ==================== 2. 帕累托 ====================
+(function(){
+    const c = initC('paretoChart'); if(!c) return;
+    const ls=['流量品','销售品','结构品&差异品','利润品'];
+    const skus=[54,78,1040,2], gmvs=[27.99,24.73,46.93,0.35];
+    let cS=[],cG=[],ts=0,tg=0;
+    ls.forEach((_,i)=>{ts+=skus[i];tg+=gmvs[i];cS.push(+(ts/1174*100).toFixed(1));cG.push(+tg.toFixed(1));});
+    c.setOption({
+        title:{...T.title,text:'SKU-GMV 帕累托曲线'},
+        tooltip:{...T.tip,trigger:'axis'},legend:{bottom:0},
+        grid:{left:55,right:55,top:50,bottom:50},
+        xAxis:{type:'category',data:ls,axisLabel:{fontSize:11}},
+        yAxis:[{type:'value',name:'累计%',max:100,nameTextStyle:{fontSize:10}},{type:'value',name:'SKU数',splitLine:{show:false},nameTextStyle:{fontSize:10}}],
+        series:[
+            {name:'GMV累计',type:'line',data:cG,smooth:true,symbol:'circle',symbolSize:7,lineStyle:{width:3,color:'#ef4444'},itemStyle:{color:'#ef4444'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(239,68,68,0.1)'},{offset:1,color:'rgba(239,68,68,0)'}])}},
+            {name:'SKU累计',type:'line',data:cS,smooth:true,symbol:'diamond',symbolSize:7,lineStyle:{width:2,color:'#3b82f6'},itemStyle:{color:'#3b82f6'}},
+            {name:'SKU数量',type:'bar',data:skus,barWidth:32,yAxisIndex:1,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(59,130,246,0.3)'},{offset:1,color:'rgba(59,130,246,0.06)'}]),borderRadius:[5,5,0,0]}}
+        ]
+    });
+})();
+
+// ==================== 3. GP vs GMV ====================
+(function(){
+    const c = initC('gpGmvChart'); if(!c) return;
+    const ls=['利润品','流量品','销售品','结构品&差异品'];
+    c.setOption({
+        title:{...T.title,text:'GMV占比 vs GP贡献率 vs GPM'},
+        tooltip:{...T.tip,trigger:'axis'},legend:{bottom:0},
+        grid:{left:45,right:25,top:50,bottom:50},
+        xAxis:{type:'category',data:ls,axisLabel:{fontSize:10}},
+        yAxis:{type:'value',name:'%',axisLabel:{fontSize:10}},
+        series:[
+            {name:'GMV占比',type:'bar',data:[0.35,27.99,24.73,46.93],barWidth:24,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#3b82f6'},{offset:1,color:'#93c5fd'}]),borderRadius:[5,5,0,0]}},
+            {name:'GP贡献率',type:'bar',data:[0.37,26.66,22.64,50.33],barWidth:24,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#10b981'},{offset:1,color:'#6ee7b7'}]),borderRadius:[5,5,0,0]}},
+            {name:'GPM',type:'line',data:[35.54,32.32,31.08,36.39],symbol:'circle',symbolSize:9,lineStyle:{width:3,color:'#f59e0b'},itemStyle:{color:'#f59e0b',borderColor:'#fff',borderWidth:2}}
+        ]
+    });
+})();
+
+// ==================== 4. 三级分类TOP15堆叠 ====================
+(function(){
+    const c = initC('stackedBar'); if(!c) return;
+    // 聚合三级分类
+    const catMap = {};
+    rawData.forEach(d => {
+        if(!catMap[d.l3]) catMap[d.l3] = {l2:d.l2,'流量品':0,'销售品':0,'结构品&差异品':0,'利润品':0,total:0};
+        catMap[d.l3][d.layer] += d.gmv;
+        catMap[d.l3].total += d.gmv;
+    });
+    const sorted = Object.entries(catMap).sort((a,b)=>b[1].total-a[1].total).slice(0,15);
+    const cats = sorted.map(s=>s[0]).reverse();
+    const layerKeys = ['流量品','销售品','结构品&差异品','利润品'];
+    const lColors = {'流量品':['#3b82f6','#93c5fd'],'销售品':['#10b981','#6ee7b7'],'结构品&差异品':['#f59e0b','#fcd34d'],'利润品':['#ef4444','#fca5a5']};
+    
+    c.setOption({
+        title:{...T.title,text:'三级分类 GMV TOP15 分层构成'},
+        tooltip:{...T.tip,trigger:'axis',axisPointer:{type:'shadow'}},
+        legend:{bottom:0},
+        grid:{left:120,right:40,top:50,bottom:50},
+        xAxis:{type:'value',name:'GMV(万)',axisLabel:{fontSize:10}},
+        yAxis:{type:'category',data:cats,axisLabel:{fontSize:11,fontWeight:500}},
+        series: layerKeys.map(name=>({
+            name, type:'bar', stack:'total', barWidth:22,
+            data: cats.map(cat => +(sorted.find(s=>s[0]===cat)[1][name]||0).toFixed(1)),
+            itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:lColors[name][0]},{offset:1,color:lColors[name][1]}]),borderRadius:name==='利润品'?[0,5,5,0]:[0,0,0,0]},
+            label:{show:true,position:'inside',formatter:p=>p.value>8?p.value+'w':'',fontSize:9,color:'#fff',fontWeight:600}
+        }))
+    });
+})();
+
+// ==================== 5. 雷达图 ====================
+(function(){
+    const c = initC('radarChart'); if(!c) return;
+    const cats=['清洁工具','生活日用','收纳整理','家装软饰'];
+    const raw={gmv:[302.3,417.1,163.8,46.5],gp:[96.7,141.1,61.3,16.4],gpm:[31.99,33.82,37.43,35.26],eff:[1.3,1.2,0.6,0.6],td:[34.3,32.9,9.7,7.3]};
+    const mx={gmv:417.1,gp:141.1,gpm:37.43,eff:1.3,td:34.3};
+    const rColors=['#3b82f6','#10b981','#f59e0b','#ef4444'];
+    const rData=cats.map((ct,i)=>({name:ct,value:[+(raw.gmv[i]/mx.gmv*100).toFixed(0),+(raw.gp[i]/mx.gp*100).toFixed(0),+(raw.gpm[i]/mx.gpm*100).toFixed(0),+(raw.eff[i]/mx.eff*100).toFixed(0),+(raw.td[i]/mx.td*100).toFixed(0)]}));
+    c.setOption({
+        title:{...T.title,text:'四大品类综合健康度'},
+        tooltip:{...T.tip},legend:{bottom:0,data:cats},
+        radar:{indicator:[{name:'GMV规模',max:100},{name:'GP贡献',max:100},{name:'毛利率',max:100},{name:'单品能效',max:100},{name:'流量依赖',max:100}],radius:'52%',center:['50%','50%'],axisName:{fontSize:11,color:'#5c6b7f'},splitArea:{areaStyle:{color:['rgba(59,130,246,0.02)','rgba(59,130,246,0.04)','rgba(59,130,246,0.02)','rgba(59,130,246,0.04)','rgba(59,130,246,0.02)']}},splitLine:{lineStyle:{color:'#e5e7eb'}}},
+        series:[{type:'radar',data:rData.map((d,i)=>({...d,lineStyle:{width:2.5,color:rColors[i]},areaStyle:{color:rColors[i],opacity:0.1},itemStyle:{color:rColors[i]},symbol:'circle',symbolSize:5}))}]
+    });
+})();
+
+// ==================== 6. 气泡矩阵 ====================
+(function(){
+    const c = initC('bubbleChart'); if(!c) return;
+    // 三级分类聚合
+    const catMap={};
+    rawData.forEach(d=>{
+        if(!catMap[d.l3]) catMap[d.l3]={l2:d.l2,gmv:0,gp:0,trafficGmv:0,sku:0};
+        catMap[d.l3].gmv+=d.gmv; catMap[d.l3].gp+=d.gp; catMap[d.l3].sku+=d.sku;
+        if(d.layer==='流量品') catMap[d.l3].trafficGmv+=d.gmv;
+    });
+    const pts=Object.entries(catMap).filter(([_,v])=>v.gmv>=5).map(([name,v])=>{
+        const gpm=v.gmv>0?(v.gp/v.gmv*100):0;
+        const tR=v.gmv>0?(v.trafficGmv/v.gmv*100):0;
+        return [tR,gmv=v.gmv,gpm,name,v.l2];
+    });
+    // Fix: recalculate properly
+    const points = Object.entries(catMap).filter(([_,v])=>v.gmv>=5).map(([name,v])=>{
+        const gpmVal = v.gmv>0 ? +(v.gp/v.gmv*100).toFixed(1) : 0;
+        const tRVal = v.gmv>0 ? +(v.trafficGmv/v.gmv*100).toFixed(1) : 0;
+        return [tRVal, gpmVal, v.gmv, name, v.l2];
+    });
+    
+    const bColors={'家装软饰':'#ef4444','清洁工具':'#3b82f6','生活日用':'#10b981','收纳整理':'#f59e0b'};
+    c.setOption({
+        title:{...T.title,text:'三级品类战略定位矩阵 (GPM vs 流量依赖度)'},
+        tooltip:{...T.tip,formatter:p=>`<strong>${p.data[3]}</strong> (${p.data[4]})<br/>GPM: ${p.data[1]}%<br/>流量品占比: ${p.data[0]}%<br/>GMV: ${p.data[2]}万`},
+        grid:{left:55,right:35,top:50,bottom:45},
+        xAxis:{name:'流量品GMV占比(%)',min:0,max:70,nameLocation:'center',nameGap:28,nameTextStyle:{fontSize:11,fontWeight:600},splitLine:{lineStyle:{type:'dashed',color:'#e5e7eb'}}},
+        yAxis:{name:'GPM(%)',min:20,max:55,nameTextStyle:{fontSize:11,fontWeight:600},splitLine:{lineStyle:{type:'dashed',color:'#e5e7eb'}}},
+        series:[{type:'scatter',symbolSize:d=>Math.max(Math.sqrt(d[2])*4,12),
+            data:points,
+            label:{show:true,formatter:p=>p.data[3],position:'top',fontSize:10,fontWeight:600,color:'#1a1a2e'},
+            itemStyle:{shadowBlur:12,shadowColor:'rgba(0,0,0,0.1)',color:p=>bColors[p.data[4]]||'#94a3b8'},
+            emphasis:{itemStyle:{shadowBlur:20,shadowColor:'rgba(0,0,0,0.2)'}}
+        }],
+        graphic:[
+            {type:'text',left:'8%',top:'10%',style:{text:'💎 理想区',fill:'rgba(16,185,129,0.25)',fontSize:12,fontWeight:600}},
+            {type:'text',right:'8%',top:'10%',style:{text:'⚠️ 价格战风险',fill:'rgba(239,68,68,0.25)',fontSize:12,fontWeight:600}},
+            {type:'text',left:'8%',bottom:'14%',style:{text:'🔧 待培育',fill:'rgba(245,158,11,0.25)',fontSize:12,fontWeight:600}},
+            {type:'text',right:'8%',bottom:'14%',style:{text:'❌ 危险区',fill:'rgba(156,163,175,0.25)',fontSize:12,fontWeight:600}}
+        ]
+    });
+})();
+
+// ==================== 7. 明细表渲染 ====================
+(function(){
+    const tbody = document.getElementById('tableBody');
+    // 按二级→三级→分层排序
+    const l2Order = {'清洁工具':1,'生活日用':2,'收纳整理':3,'家装软饰':4};
+    const layerOrder = {'流量品':1,'销售品':2,'利润品':3,'结构品&差异品':4};
+    const sorted = [...rawData].sort((a,b) => {
+        if(l2Order[a.l2] !== l2Order[b.l2]) return (l2Order[a.l2]||9)-(l2Order[b.l2]||9);
+        if(a.l3 !== b.l3) return a.l3.localeCompare(b.l3,'zh');
+        return (layerOrder[a.layer]||9)-(layerOrder[b.layer]||9);
+    });
+    
+    let lastL2='', lastL3='';
+    sorted.forEach(d => {
+        const tr = document.createElement('tr');
+        const showL2 = d.l2!==lastL2;
+        const showL3 = d.l3!==lastL3;
+        lastL2=d.l2; lastL3=d.l3;
+        
+        // 诊断标签
+        let tag='';
+        if(d.eff>=10) tag='<span class="tag tag-star">超级爆款</span>';
+        else if(d.eff>=5) tag='<span class="tag tag-ok">高效能</span>';
+        else if(d.gpm>=40 && d.eff<0.5) tag='<span class="tag tag-warn">高利低效</span>';
+        else if(d.eff<0.3) tag='<span class="tag tag-warn">建议淘汰</span>';
+        else if(d.gpm>=35 && d.eff>=0.8 && d.eff<3) tag='<span class="tag tag-action">潜力培育</span>';
+        else if(d.layer==='流量品' && d.gpm<28) tag='<span class="tag tag-warn">毛利偏低</span>';
+        
+        const effClass = d.eff>=6?'highlight c-blue':d.eff<0.3?'highlight c-red':'';
+        const gpmClass = d.gpm>=40?'highlight c-green':d.gpm<28?'highlight c-orange':'';
+        
+        tr.innerHTML = `
+            <td class="${showL2?'cat-l2':''}">${showL2?d.l2:''}</td>
+            <td class="${showL3?'cat-l3':''}" style="${showL3?'font-weight:600;color:var(--text-primary);':''}">${showL3?d.l3:''}</td>
+            <td>${d.layer}</td>
+            <td class="num">${d.sku}</td>
+            <td class="num">${d.gmv.toFixed(1)}</td>
+            <td class="num">${(d.gmv/929.8*100).toFixed(2)}%</td>
+            <td class="num">${d.gp.toFixed(1)}</td>
+            <td class="num ${gpmClass}">${d.gpm.toFixed(1)}%</td>
+            <td class="num ${effClass}">${d.eff.toFixed(1)}</td>
+            <td>${tag}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+})();
+</script>
+</body>
+</html>
