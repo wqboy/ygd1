@@ -3,472 +3,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>13城气象数据中心 (磐石稳定版)</title>
+    <title>6月天气数据洞察仪表盘</title>
+    
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
-        .modern-select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
-        .segmented-control { background-color: #f1f5f9; border-radius: 0.5rem; padding: 4px; display: inline-flex; }
-        .segmented-btn { padding: 0.5rem 1.25rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; cursor: pointer; }
-        .segmented-btn.active { background-color: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); color: #1e293b; }
-        .segmented-btn.inactive { color: #64748b; }
-        .pill-tab { padding: 0.375rem 0.875rem; border-radius: 9999px; font-size: 0.8125rem; font-weight: 500; transition: all 0.2s; border: 1px solid transparent; cursor: pointer; }
-        .pill-tab.active { background-color: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 2px 4px -1px rgba(37, 99, 235, 0.3); }
-        .pill-tab.inactive { background-color: white; color: #475569; border-color: #e2e8f0; }
-        .chip { padding: 0.25rem 0.75rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-        .chip.active { background-color: #0f172a; color: white; }
-        .chip.inactive { background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
-        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
-        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        input:checked + .toggle-slider { background-color: #2563eb; }
-        input:checked + .toggle-slider:before { transform: translateX(20px); }
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .rain-badge { background-color: #dbeafe; color: #1e40af; }
-        .sun-badge { background-color: #f1f5f9; color: #475569; }
-        .drizzle-badge { background-color: #fef3c7; color: #92400e; }
-        .trend-badge { background-color: #f3e8ff; color: #6b21a8; }
-        .table-container { max-height: 650px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
-        .table-container thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; border-bottom: 2px solid #e2e8f0; }
-        .progress-bar { transition: width 0.3s ease; }
-        .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 20; border-radius: 1rem; }
+        /* 苹果风平滑字体与滚动条样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f7;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d1d6;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #aeaeb2;
+        }
+
+        /* 玻璃拟态卡片效果 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            border-radius: 20px;
+        }
+
+        /* 苹果风分段控制器 */
+        .segmented-control {
+            background-color: #e5e5ea;
+            padding: 2px;
+            border-radius: 8px;
+            display: inline-flex;
+        }
+        .segmented-control button {
+            padding: 4px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: #8e8e93;
+        }
+        .segmented-control button.active {
+            background-color: #ffffff;
+            color: #1c1c1e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* 表格悬停过渡 */
+        tr { transition: background-color 0.2s; }
+        
+        /* 加载动画 */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid #007aff;
+            width: 40px;
+            height: 40px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body class="text-slate-800">
-    <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xl">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<body class="text-[#1c1c1e] h-screen overflow-hidden flex">
+
+<div id="app" class="flex w-full h-full" v-cloak>
+    
+    <!-- 全屏加载遮罩 -->
+    <div v-if="loadingGlobal" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/90 backdrop-blur-sm">
+        <div class="spinner mb-4"></div>
+        <p class="text-[#8e8e93] font-medium tracking-wide">正在同步气象数据 ({{ loadingProgress }})...</p>
+    </div>
+
+    <!-- 左侧侧边栏 (城市列表) -->
+    <aside class="w-64 flex-shrink-0 border-r border-[#e5e5ea] bg-[#fbfbfd] flex flex-col h-full">
+        <div class="p-6 pb-2">
+            <h1 class="text-xl font-bold tracking-tight">天气数据洞察</h1>
+            <p class="text-xs text-[#8e8e93] mt-1">{{ currentYear }}年6月 气象汇总</p>
+        </div>
+        <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+            <button 
+                v-for="(city, index) in cities" 
+                :key="index"
+                @click="selectCity(index)"
+                class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 flex items-center justify-between"
+                :class="activeCityIndex === index ? 'bg-[#007aff] text-white shadow-md' : 'text-[#3a3a3c] hover:bg-[#e5e5ea]/50'"
+            >
+                <span>{{ city.name }}</span>
+                <span class="text-xs opacity-70">{{ city.lat }}, {{ city.lon }}</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- 右侧主要内容区 -->
+    <main class="flex-1 h-full overflow-y-auto p-8 bg-[#f5f5f7] relative relative scroll-smooth">
+        
+        <!-- 头部栏 -->
+        <header class="flex items-center justify-between mb-8">
             <div>
-                <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
-                    <span class="bg-blue-500 text-white p-1.5 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg></span>
-                    13城气象数据中心
-                </h1>
-                <p class="text-slate-400 text-xs mt-1.5">Open-Meteo 驱动 · 确定性气候基准引擎 (磐石稳定版)</p>
+                <h2 class="text-3xl font-bold tracking-tight">{{ activeCity.name }} <span class="text-2xl text-[#8e8e93] font-medium ml-2">6月气象报告</span></h2>
+                <p class="text-[#8e8e93] mt-1 text-sm">自动区分降雨及预测 · 同比去年数据</p>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-lg border border-slate-700">
-                    <span class="text-xs text-slate-400 font-medium">目标月份:</span>
-                    <select id="monthSelector" onchange="changeMonth(this.value)" class="modern-select bg-slate-900 text-white text-sm font-semibold rounded-md border border-slate-600 py-1 pl-2 cursor-pointer"></select>
+            <button @click="exportCSV" class="flex items-center gap-2 bg-white border border-[#d1d1d6] hover:bg-[#f2f2f7] text-[#1c1c1e] px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                导出完整数据至 CSV
+            </button>
+        </header>
+
+        <!-- KPI 卡片网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- 卡片1: 整月降雨天数 -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
+                    <span>☔️</span> 总降雨天数 (含预测)
                 </div>
-                <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-white text-slate-900 font-medium py-2 px-4 rounded-lg shadow-sm hover:bg-slate-100 transition flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    导出 CSV
-                </button>
+                <div class="flex items-end gap-3 mt-2">
+                    <span class="text-4xl font-bold">{{ kpiData.thisYear.totalRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
+                    <span class="text-[#8e8e93]">去年同期</span>
+                    <span class="font-medium">{{ kpiData.lastYear.totalRain }} 天</span>
+                </div>
+            </div>
+
+            <!-- 卡片2: 上半月降雨天数 -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
+                    <span>📅</span> 上半月降雨 (1-15日)
+                </div>
+                <div class="flex items-end gap-3 mt-2">
+                    <span class="text-4xl font-bold text-blue-600">{{ kpiData.thisYear.firstHalfRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
+                    <span class="text-[#8e8e93]">去年上半月</span>
+                    <span class="font-medium">{{ kpiData.lastYear.firstHalfRain }} 天</span>
+                </div>
+            </div>
+
+            <!-- 卡片3: 下半月降雨天数 -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
+                    <span>🗓️</span> 下半月降雨 (16-30日)
+                </div>
+                <div class="flex items-end gap-3 mt-2">
+                    <span class="text-4xl font-bold text-indigo-500">{{ kpiData.thisYear.secondHalfRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
+                    <span class="text-[#8e8e93]">去年下半月</span>
+                    <span class="font-medium">{{ kpiData.lastYear.secondHalfRain }} 天</span>
+                </div>
             </div>
         </div>
-    </header>
 
-    <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div id="loadingState" class="bg-white p-12 rounded-2xl shadow-sm border border-slate-100 text-center space-y-4">
-            <div class="flex justify-center"><svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-            <h3 class="text-lg font-semibold text-slate-800">正在同步全球气象模型数据...</h3>
-            <p class="text-sm text-slate-500" id="loadingText">初始化确定性数据引擎...</p>
-            <div class="w-full bg-slate-100 rounded-full h-1.5 max-w-sm mx-auto"><div id="progressBar" class="bg-blue-600 h-1.5 rounded-full progress-bar" style="width: 0%"></div></div>
-        </div>
-
-        <div id="errorState" class="hidden bg-amber-50 border border-amber-200 p-5 rounded-xl text-amber-800 text-sm flex items-start gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            <div><strong>部分数据获取受限：</strong><span id="errorMsg"></span></div>
-        </div>
-
-        <div id="mainContent" class="hidden space-y-8 fade-in">
-            <div id="dataAlert" class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl flex items-center gap-3 text-blue-900 text-xs font-medium"></div>
-
-            <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative">
-                <div id="chartOverlay" class="loading-overlay hidden"><svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-bold text-slate-800" id="chartTitle">降雨天数同比分析</h2>
-                    <span class="text-xs text-slate-400">单位：天 (毛毛雨不计入)</span>
+        <!-- 图表区 -->
+        <div class="glass-card p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold">最高气温趋势对比</h3>
+                <div class="flex items-center gap-4 text-xs text-[#8e8e93]">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#007aff]"></span> 今年预测/实际</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#d1d1d6]"></span> 去年历史</span>
                 </div>
-                <div class="h-[450px]"><canvas id="rainChart"></canvas></div>
-            </section>
+            </div>
+            <div class="h-64 w-full">
+                <canvas id="tempChart"></canvas>
+            </div>
+        </div>
 
-            <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto relative">
-                <div id="summaryOverlay" class="loading-overlay hidden"><svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-                <h2 class="text-base font-bold text-slate-800 mb-4">13城总览对比 (区分上下半月)</h2>
-                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50/50" id="summaryHead"></thead>
-                    <tbody class="bg-white divide-y divide-slate-100" id="summaryTableBody"></tbody>
+        <!-- 详细数据表格 -->
+        <div class="glass-card overflow-hidden">
+            <div class="p-5 border-b border-gray-100/50 flex items-center justify-between bg-white/50">
+                <h3 class="text-lg font-bold">每日详情列表</h3>
+                <div class="segmented-control">
+                    <button :class="{ active: viewYear === currentYear }" @click="viewYear = currentYear">今年 ({{ currentYear }})</button>
+                    <button :class="{ active: viewYear === lastYear }" @click="viewYear = lastYear">去年 ({{ lastYear }})</button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-[#fbfbfd] text-[#8e8e93]">
+                            <th class="px-6 py-4 font-medium">日期</th>
+                            <th class="px-6 py-4 font-medium">时段</th>
+                            <th class="px-6 py-4 font-medium">天气状况</th>
+                            <th class="px-6 py-4 font-medium">是否下雨</th>
+                            <th class="px-6 py-4 font-medium text-right">最高温</th>
+                            <th class="px-6 py-4 font-medium text-right">最低温</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-[#f5f5f7]/50">
+                            <td class="px-6 py-4 font-medium">{{ day.dateDisplay }}</td>
+                            <td class="px-6 py-4">
+                                <span :class="day.isFirstHalf ? 'text-blue-600 bg-blue-50 px-2 py-1 rounded-md' : 'text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md'">
+                                    {{ day.isFirstHalf ? '上半月' : '下半月' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2" v-if="day.hasData">
+                                    <span class="text-lg">{{ day.icon }}</span>
+                                    <span>{{ day.desc }}</span>
+                                </div>
+                                <span v-else class="text-[#8e8e93] italic">暂无预测</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <template v-if="day.hasData">
+                                    <span v-if="day.isRain" class="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
+                                    <span v-else class="text-[#8e8e93]">否</span>
+                                </template>
+                                <span v-else class="text-[#8e8e93]">-</span>
+                            </td>
+                            <td class="px-6 py-4 text-right font-medium" :class="day.hasData ? 'text-red-500' : 'text-[#8e8e93]'">
+                                {{ day.hasData ? day.maxTemp + '°C' : '-' }}
+                            </td>
+                            <td class="px-6 py-4 text-right font-medium" :class="day.hasData ? 'text-blue-500' : 'text-[#8e8e93]'">
+                                {{ day.hasData ? day.minTemp + '°C' : '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
-            </section>
-
-            <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative">
-                <div id="dailyOverlay" class="loading-overlay hidden"><svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2" id="dailyTitle">
-                        <span class="w-1 h-5 bg-blue-600 rounded-full"></span>城市每日天气明细
-                    </h2>
-                    <div class="segmented-control">
-                        <button onclick="setYear('26')" class="segmented-btn active" id="btnYear26">2026年 (今年)</button>
-                        <button onclick="setYear('25')" class="segmented-btn inactive" id="btnYear25">2025年 (去年)</button>
-                    </div>
-                    <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
-                        <span class="text-sm font-medium text-slate-600">仅显示下雨天</span>
-                        <label class="toggle-switch"><input type="checkbox" id="rainFilter" onchange="renderDailyTable()"><span class="toggle-slider"></span></label>
-                    </div>
-                </div>
-                <div class="mb-4"><p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">选择城市</p><div class="flex flex-wrap gap-2" id="cityTabs"></div></div>
-                <div class="mb-6">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">时段筛选</p>
-                    <div class="flex flex-wrap gap-2" id="halfFilters">
-                        <button onclick="setHalfFilter('all')" class="chip active" data-half="all">全部</button>
-                        <button onclick="setHalfFilter('up')" class="chip inactive" data-half="up">上半月 (1-15日)</button>
-                        <button onclick="setHalfFilter('down')" class="chip inactive" data-half="down">下半月 (16-月末)</button>
-                    </div>
-                </div>
-                <div class="table-container fade-in">
-                    <table class="min-w-full divide-y divide-slate-100 text-sm">
-                        <thead><tr>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs w-28">日期</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs w-24">时段</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs">天气状况</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs w-32">气温 (℃)</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs w-28">降水 (mm)</th>
-                            <th class="px-5 py-3.5 text-left font-semibold text-slate-600 uppercase text-xs w-32">数据来源</th>
-                        </tr></thead>
-                        <tbody class="bg-white divide-y divide-slate-50" id="dailyTableBody"></tbody>
-                    </table>
-                </div>
-                <div class="mt-4 text-[11px] text-slate-500 leading-relaxed space-y-1">
-                    <p>* <strong>毛毛雨 (WMO Code 51-57)</strong> 降水量极微，<strong>不计入</strong>降雨天数统计。</p>
-                    <p>* 逐日天气预报的物理极限为 16 天。超出此范围的数据，采用该城市历史30年气候平均基准值生成“📊 气候基准”，确保数据幂等性（每次刷新结果绝对一致）。</p>
-                </div>
-            </section>
+            </div>
         </div>
+        
+        <!-- 底部占位 -->
+        <div class="h-12"></div>
     </main>
+</div>
 
-    <footer class="text-center py-8 text-slate-400 text-xs border-t border-slate-100 mt-8">Data Source: Open-Meteo APIs | 磐石稳定版</footer>
+<script>
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
-    <script>
-        const CITIES = [
-            { name: "深圳", lat: 22.54, lon: 114.06 }, { name: "广州", lat: 23.13, lon: 113.26 },
-            { name: "福州", lat: 26.07, lon: 119.30 }, { name: "上海", lat: 31.23, lon: 121.47 },
-            { name: "杭州", lat: 30.27, lon: 120.15 }, { name: "苏州", lat: 31.30, lon: 120.59 },
-            { name: "武汉", lat: 30.59, lon: 114.31 }, { name: "成都", lat: 30.57, lon: 104.07 },
-            { name: "贵阳", lat: 26.65, lon: 106.63 }, { name: "昆明", lat: 25.04, lon: 102.71 },
-            { name: "济南", lat: 36.65, lon: 116.99 }, { name: "北京", lat: 39.90, lon: 116.40 },
-            { name: "沈阳", lat: 41.80, lon: 123.43 }
-        ];
+    // Open-Meteo WMO 天气代码解析 (核心逻辑：区分毛毛雨和真雨)
+    // 毛毛雨 (51, 53, 55, 56, 57) 设置 rain: false
+    // 阵雨、大雨、雷暴等设置 rain: true
+    const WMO_CODES = {
+        0: { desc: "晴天", icon: "☀️", rain: false },
+        1: { desc: "大部晴朗", icon: "🌤️", rain: false },
+        2: { desc: "多云", icon: "⛅", rain: false },
+        3: { desc: "阴天", icon: "☁️", rain: false },
+        45: { desc: "雾", icon: "🌫️", rain: false },
+        48: { desc: "结冰雾", icon: "🌫️", rain: false },
+        51: { desc: "轻微毛毛雨", icon: "🌧️", rain: false },
+        53: { desc: "中等毛毛雨", icon: "🌧️", rain: false },
+        55: { desc: "密集毛毛雨", icon: "🌧️", rain: false },
+        56: { desc: "冻毛毛雨", icon: "🌧️", rain: false },
+        57: { desc: "密集冻毛毛雨", icon: "🌧️", rain: false },
+        61: { desc: "小雨", icon: "☔", rain: true },
+        63: { desc: "中雨", icon: "☔", rain: true },
+        65: { desc: "大雨", icon: "☔", rain: true },
+        66: { desc: "轻微冻雨", icon: "🌧️", rain: true },
+        67: { desc: "大冻雨", icon: "🌧️", rain: true },
+        71: { desc: "小雪", icon: "❄️", rain: false },
+        73: { desc: "中雪", icon: "❄️", rain: false },
+        75: { desc: "大雪", icon: "❄️", rain: false },
+        77: { desc: "雪粒", icon: "❄️", rain: false },
+        80: { desc: "轻微阵雨", icon: "🌦️", rain: true },
+        81: { desc: "中等阵雨", icon: "🌦️", rain: true },
+        82: { desc: "强烈阵雨", icon: "⛈️", rain: true },
+        85: { desc: "轻微阵雪", icon: "🌨️", rain: false },
+        86: { desc: "强烈阵雪", icon: "🌨️", rain: false },
+        95: { desc: "雷暴", icon: "🌩️", rain: true },
+        96: { desc: "雷暴伴轻微冰雹", icon: "⛈️", rain: true },
+        99: { desc: "雷暴伴强烈冰雹", icon: "⛈️", rain: true },
+    };
 
-        const today = new Date();
-        const currentMonth = today.getMonth() + 1;
-        const currentDay = today.getDate();
-        let targetMonth = currentMonth;
-        let currentCity = "深圳";
-        let currentHalf = "all";
-        let currentYear = "26";
-        let chartInstance = null;
-        let globalData = {};
+    const getWeatherData = (code) => {
+        return WMO_CODES[code] || { desc: "未知天气", icon: "❓", rain: false };
+    };
 
-        const monthSelect = document.getElementById('monthSelector');
-        for(let i=1; i<=12; i++) {
-            const opt = document.createElement('option');
-            opt.value = i; opt.textContent = `${i}月`;
-            if(i === currentMonth) opt.selected = true;
-            monthSelect.appendChild(opt);
-        }
-
-        function getDaysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
-
-        function parseWMO(code, precip) {
-            if (code === null || code === undefined) return { desc: "无数据", isRain: false, isDrizzle: false };
-            const c = parseInt(code);
-            let desc = "未知", isRain = false, isDrizzle = false;
-            if (c === 0) desc = "☀️ 晴";
-            else if (c === 1) desc = "🌤️ 晴间多云";
-            else if (c === 2) desc = "⛅ 多云";
-            else if (c === 3) desc = "☁️ 阴";
-            else if (c === 45 || c === 48) desc = "🌫️ 雾";
-            else if (c >= 51 && c <= 57) { desc = "🌦️ 毛毛雨"; isRain = false; isDrizzle = true; }
-            else if (c >= 61 && c <= 67) { desc = "🌧️ 雨"; isRain = true; }
-            else if (c >= 71 && c <= 77) { desc = "🌨️ 雪"; isRain = true; }
-            else if (c >= 80 && c <= 82) { desc = "🌧️ 阵雨"; isRain = true; }
-            else if (c >= 85 && c <= 86) { desc = "🌨️ 阵雪"; isRain = true; }
-            else if (c >= 95 && c <= 99) { desc = "⛈️ 雷暴"; isRain = true; }
-            if (precip !== null && precip >= 0.1 && !isDrizzle) isRain = true;
-            return { desc, isRain, isDrizzle };
-        }
-
-        // 确定性伪随机数生成器 (Seeded PRNG) - 保证每次刷新结果绝对一致
-        function seededRandom(seed) {
-            let x = Math.sin(seed) * 10000;
-            return x - Math.floor(x);
-        }
-
-        // 确定性气候基准引擎 (彻底消灭 Math.random)
-        function generateClimateBaseline(city, year, month, days) {
-            const data = [];
-            const baseTemp = 30 - (city.lat - 20) * 0.5; 
-            const monthOffset = Math.abs(month - 7) * 3; 
-            const avgMax = baseTemp - monthOffset + 5;
-            const avgMin = avgMax - 8;
-            // 基于纬度和月份确定固定的降雨概率
-            let rainProb = 0.2;
-            if (month >= 5 && month <= 9) rainProb = city.lat < 30 ? 0.6 : 0.35; 
+    createApp({
+        setup() {
+            // 自动维护：基于系统当前年份动态计算
+            const currentYear = ref(new Date().getFullYear());
+            const lastYear = ref(currentYear.value - 1);
             
-            for (let i = 1; i <= days; i++) {
-                // 使用 城市纬度+经度+年份+月份+日期 作为唯一哈希种子
-                const seed = city.lat * 1000 + city.lon + year * 100 + month * 10 + i;
-                const rand = seededRandom(seed);
+            // 城市配置数据
+            const cities = [
+                { name: '深圳', lat: 22.54, lon: 114.06 },
+                { name: '广州', lat: 23.13, lon: 113.26 },
+                { name: '上海', lat: 31.23, lon: 121.47 },
+                { name: '杭州', lat: 30.27, lon: 120.15 },
+                { name: '苏州', lat: 31.30, lon: 120.58 },
+                { name: '昆明', lat: 25.04, lon: 102.71 },
+                { name: '福州', lat: 26.07, lon: 119.30 },
+                { name: '济南', lat: 36.65, lon: 117.12 },
+                { name: '贵阳', lat: 26.58, lon: 106.71 },
+                { name: '成都', lat: 30.66, lon: 104.06 },
+                { name: '武汉', lat: 30.59, lon: 114.30 },
+                { name: '北京', lat: 39.90, lon: 116.40 },
+                { name: '沈阳', lat: 41.80, lon: 123.43 }
+            ];
+
+            const activeCityIndex = ref(0);
+            const activeCity = computed(() => cities[activeCityIndex.value]);
+            
+            const loadingGlobal = ref(true);
+            const loadingProgress = ref("初始化...");
+            
+            const viewYear = ref(currentYear.value);
+
+            // 存储拉取回来的结构化数据
+            // 结构: allData.value = { [year]: { [cityIndex]: [ {date, hasData, code...}, ... ] } }
+            const allData = ref({});
+            
+            let chartInstance = null;
+
+            // -----------------------------------------
+            // API 数据拉取逻辑
+            // -----------------------------------------
+            const fetchAllData = async () => {
+                loadingGlobal.value = true;
                 
-                const isRain = rand < rainProb;
-                const p = isRain ? (rand * 15 + 1).toFixed(1) : "0.0";
-                // 使用另一个种子生成气温波动
-                const tempRand = seededRandom(seed + 999);
-                const min = avgMin + (tempRand * 4 - 2);
-                const max = avgMax + (tempRand * 4 - 2);
-                
-                data.push({
-                    d: String(i).padStart(2, '0'), half: i <= 15 ? "上半月" : "下半月",
-                    w: isRain ? "📊 基准: 阵雨" : "📊 基准: 多云",
-                    t: `${Math.round(min)}~${Math.round(max)}℃`, p, r: isRain, src: "📊 气候基准", isDrizzle: false
-                });
-            }
-            return data;
-        }
+                try {
+                    const lats = cities.map(c => c.lat).join(',');
+                    const lons = cities.map(c => c.lon).join(',');
+                    
+                    // 1. 获取去年6月的历史数据 (使用 Archive API)
+                    loadingProgress.value = `获取 ${lastYear.value} 年历史数据...`;
+                    const urlPast = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${lastYear.value}-06-01&end_date=${lastYear.value}-06-30&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
+                    const resPast = await fetch(urlPast).then(r => r.json());
 
-        async function safeFetch(url) {
-            try {
-                const res = await fetch(url);
-                if (!res.ok) return null;
-                return await res.json();
-            } catch (e) { return null; }
-        }
+                    // 2. 获取今年6月的数据 
+                    // 为了涵盖过去和未来的预测，使用 forecast API 配合广泛的时间跨度。
+                    // 考虑到部分天数超出了 16 天预报范围，它们会自动缺失，我们在组合时标识为“暂无预测”。
+                    loadingProgress.value = `获取 ${currentYear.value} 年气象及预测...`;
+                    
+                    // 构造今年请求：使用 forecast API，允许 start/end 范围
+                    const urlCurrent = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&start_date=${currentYear.value}-06-01&end_date=${currentYear.value}-06-30&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
+                    
+                    // 备注：如果超出预测期，Forecast API 会返回尽最大努力的数据（例如截断到可预报的最后一天）
+                    let resCurrent = null;
+                    try {
+                        resCurrent = await fetch(urlCurrent).then(r => r.json());
+                        if (resCurrent.error) throw new Error(resCurrent.reason);
+                    } catch (e) {
+                        // 如果因为未来日期太远导致 Forecast API 报错，降级使用 Archive 结合 Forecast 或直接提取最大预测
+                        // 稳妥方案：使用 past_days 和 forecast_days
+                        console.warn("Forecast API 直接请求整月失败，切换为相对天数获取法", e);
+                        const fallbackUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai&past_days=90&forecast_days=16`;
+                        resCurrent = await fetch(fallbackUrl).then(r => r.json());
+                    }
 
-        async function fetchMonthData(month, showOverlay = false) {
-            if(showOverlay) {
-                ['chartOverlay', 'summaryOverlay', 'dailyOverlay'].forEach(id => document.getElementById(id).classList.remove('hidden'));
-            }
+                    // 3. 数据重组清洗
+                    loadingProgress.value = "正在渲染界面...";
+                    const processResponse = (rawList, year) => {
+                        const parsed = {};
+                        // 确保 rawList 总是数组格式以便循环 (Open-Meteo 请求多个城市时返回数组)
+                        const list = Array.isArray(rawList) ? rawList : [rawList];
+                        
+                        list.forEach((cityRes, index) => {
+                            const daily = cityRes.daily || {};
+                            const times = daily.time || [];
+                            const monthData = [];
+                            
+                            for (let day = 1; day <= 30; day++) {
+                                const dateStr = `${year}-06-${day.toString().padStart(2, '0')}`;
+                                const dateDisplay = `6月${day}日`;
+                                const isFirstHalf = day <= 15;
+                                
+                                const idxInApi = times.indexOf(dateStr);
+                                
+                                if (idxInApi !== -1 && daily.weather_code[idxInApi] !== null) {
+                                    const code = daily.weather_code[idxInApi];
+                                    const weather = getWeatherData(code);
+                                    monthData.push({
+                                        date: dateStr,
+                                        dateDisplay,
+                                        dayNum: day,
+                                        isFirstHalf,
+                                        hasData: true,
+                                        code: code,
+                                        desc: weather.desc,
+                                        icon: weather.icon,
+                                        isRain: weather.rain,
+                                        maxTemp: Math.round(daily.temperature_2m_max[idxInApi]),
+                                        minTemp: Math.round(daily.temperature_2m_min[idxInApi])
+                                    });
+                                } else {
+                                    monthData.push({
+                                        date: dateStr,
+                                        dateDisplay,
+                                        dayNum: day,
+                                        isFirstHalf,
+                                        hasData: false,
+                                        isRain: false
+                                    });
+                                }
+                            }
+                            parsed[index] = monthData;
+                        });
+                        return parsed;
+                    };
 
-            const days = getDaysInMonth(2026, month);
-            const mStr = String(month).padStart(2, '0');
-            let errorCities = [];
-            let localData = {};
+                    allData.value = {
+                        [lastYear.value]: processResponse(resPast, lastYear.value),
+                        [currentYear.value]: processResponse(resCurrent, currentYear.value)
+                    };
 
-            let completed = 0;
-            const total = CITIES.length;
-            const updateProgress = () => {
-                completed++;
-                if(!showOverlay) {
-                    document.getElementById('progressBar').style.width = `${(completed / total) * 100}%`;
-                    document.getElementById('loadingText').textContent = `正在解析 ${month} 月气象数据... (${completed}/${total})`;
+                    // 初始化完成
+                    setTimeout(() => {
+                        loadingGlobal.value = false;
+                        updateChart();
+                    }, 500);
+
+                } catch (error) {
+                    console.error("API 数据获取失败: ", error);
+                    alert("获取天气数据失败，请检查网络连接后刷新重试。");
+                    loadingGlobal.value = false;
                 }
             };
 
-            const promises = CITIES.map(async (city) => {
-                const baseParams = `latitude=${city.lat}&longitude=${city.lon}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
-                
-                // 强制请求完整月份，使用 Date-Map 字典进行绝对日期对齐，防止时区错位
-                const url25 = `https://archive-api.open-meteo.com/v1/archive?${baseParams}&start_date=2025-${mStr}-01&end_date=2025-${mStr}-${days}`;
-                const url26 = `https://archive-api.open-meteo.com/v1/archive?${baseParams}&start_date=2026-${mStr}-01&end_date=2026-${mStr}-${days}`;
-                
-                // 预报 API 仅作为当前月或近 16 天的补充
-                let url26Fore = null;
-                if (month === currentMonth || (new Date(2026, month-1, 1) - today) / 86400000 <= 16) {
-                     url26Fore = `https://api.open-meteo.com/v1/forecast?${baseParams}&start_date=2026-${mStr}-01&end_date=2026-${mStr}-${days}`;
-                }
-
-                const [res25, res26Arch, res26Fore] = await Promise.all([
-                    safeFetch(url25), safeFetch(url26), url26Fore ? safeFetch(url26Fore) : Promise.resolve(null)
-                ]);
-
-                updateProgress();
-                return { city: city.name, res25, res26Arch, res26Fore, days };
+            // -----------------------------------------
+            // 计算属性与状态绑定
+            // -----------------------------------------
+            
+            const activeTableData = computed(() => {
+                if (!allData.value[viewYear.value]) return [];
+                return allData.value[viewYear.value][activeCityIndex.value] || [];
             });
 
-            const results = await Promise.all(promises);
-
-            results.forEach(res => {
-                const map25 = {};
-                const map26 = {};
-
-                // 解析去年 (Archive)
-                if (res.res25 && res.res25.daily) {
-                    const d = res.res25.daily;
-                    const codes = d.weather_code || d.weathercode || [];
-                    for (let i = 0; i < d.time.length; i++) {
-                        const p = d.precipitation_sum[i];
-                        const parsed = parseWMO(codes[i], p);
-                        map25[d.time[i]] = { p, parsed, min: d.temperature_2m_min[i], max: d.temperature_2m_max[i], src: "📜 历史实况" };
-                    }
-                } else { errorCities.push(`${res.city}(去年)`); }
-
-                // 解析今年 (Archive + Forecast 字典合并，Forecast 优先级高)
-                if (res.res26Arch && res.res26Arch.daily) {
-                    const d = res.res26Arch.daily;
-                    const codes = d.weather_code || d.weathercode || [];
-                    for (let i = 0; i < d.time.length; i++) {
-                        map26[d.time[i]] = { p: d.precipitation_sum[i], code: codes[i], min: d.temperature_2m_min[i], max: d.temperature_2m_max[i], src: "📡 实况" };
-                    }
-                }
-                if (res.res26Fore && res.res26Fore.daily) {
-                    const d = res.res26Fore.daily;
-                    const codes = d.weather_code || d.weathercode || [];
-                    for (let i = 0; i < d.time.length; i++) {
-                        // 如果 Forecast 提供了数据，覆盖 Archive (通常 Forecast 更新更快)
-                        map26[d.time[i]] = { p: d.precipitation_sum[i], code: codes[i], min: d.temperature_2m_min[i], max: d.temperature_2m_max[i], src: "🛰️ 预报" };
-                    }
-                }
-
-                // 生成最终数组
-                const data25 = [];
-                const data26 = [];
-                const cityObj = CITIES.find(c=>c.name===res.city);
-                const baseline25 = generateClimateBaseline(cityObj, 2025, month, res.days);
-                const baseline26 = generateClimateBaseline(cityObj, 2026, month, res.days);
-
-                for (let i = 1; i <= res.days; i++) {
-                    const dateStr = `2025-${mStr}-${String(i).padStart(2, '0')}`;
-                    const dateStr26 = `2026-${mStr}-${String(i).padStart(2, '0')}`;
+            // 计算选定城市的 KPI (降雨天数)
+            const kpiData = computed(() => {
+                const summarize = (yearData) => {
+                    if (!yearData) return { totalRain: 0, firstHalfRain: 0, secondHalfRain: 0 };
+                    const cityData = yearData[activeCityIndex.value] || [];
                     
-                    // 去年
-                    if (map25[dateStr]) {
-                        const item = map25[dateStr];
-                        data25.push({
-                            d: String(i).padStart(2, '0'), half: i <= 15 ? "上半月" : "下半月",
-                            w: item.parsed.desc, t: `${Math.round(item.min)}~${Math.round(item.max)}℃`,
-                            p: item.p !== null ? item.p.toFixed(1) : "0.0", r: item.parsed.isRain, src: item.src, isDrizzle: item.parsed.isDrizzle
+                    let total = 0, first = 0, second = 0;
+                    cityData.forEach(d => {
+                        if (d.hasData && d.isRain) {
+                            total++;
+                            if (d.isFirstHalf) first++;
+                            else second++;
+                        }
+                    });
+                    return { totalRain: total, firstHalfRain: first, secondHalfRain: second };
+                };
+
+                return {
+                    thisYear: summarize(allData.value[currentYear.value]),
+                    lastYear: summarize(allData.value[lastYear.value])
+                };
+            });
+
+            // -----------------------------------------
+            // UI 与图表交互逻辑
+            // -----------------------------------------
+            
+            const selectCity = (index) => {
+                activeCityIndex.value = index;
+                viewYear.value = currentYear.value; // 切换城市时重置表格年份视角
+                updateChart();
+            };
+
+            const updateChart = () => {
+                nextTick(() => {
+                    const ctx = document.getElementById('tempChart');
+                    if (!ctx) return;
+                    
+                    const thisYearData = allData.value[currentYear.value]?.[activeCityIndex.value] || [];
+                    const lastYearData = allData.value[lastYear.value]?.[activeCityIndex.value] || [];
+                    
+                    const labels = Array.from({length: 30}, (_, i) => `6/${i+1}`);
+                    
+                    // 仅提取有数据天数的温度用于连线，断点由 Chart.js spanGaps 处理
+                    const mapTemp = (dataList) => dataList.map(d => d.hasData ? d.maxTemp : null);
+
+                    const datasets = [
+                        {
+                            label: `${currentYear.value} 最高温 (°C)`,
+                            data: mapTemp(thisYearData),
+                            borderColor: '#007aff',
+                            backgroundColor: '#007aff',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            spanGaps: true
+                        },
+                        {
+                            label: `${lastYear.value} 最高温 (°C)`,
+                            data: mapTemp(lastYearData),
+                            borderColor: '#d1d1d6',
+                            borderDash: [5, 5],
+                            backgroundColor: '#d1d1d6',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            spanGaps: true
+                        }
+                    ];
+
+                    if (chartInstance) {
+                        chartInstance.data.labels = labels;
+                        chartInstance.data.datasets = datasets;
+                        chartInstance.update();
+                    } else {
+                        chartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: { labels, datasets },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                        titleColor: '#1c1c1e',
+                                        bodyColor: '#1c1c1e',
+                                        borderColor: '#e5e5ea',
+                                        borderWidth: 1,
+                                        padding: 12,
+                                        boxPadding: 6,
+                                        usePointStyle: true
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        grid: { color: '#f2f2f7', drawBorder: false },
+                                        ticks: { color: '#8e8e93' },
+                                        suggestedMin: 20,
+                                        suggestedMax: 35
+                                    },
+                                    x: {
+                                        grid: { display: false, drawBorder: false },
+                                        ticks: { color: '#8e8e93', maxTicksLimit: 15 }
+                                    }
+                                }
+                            }
                         });
-                    } else { data25.push(baseline25[i-1]); }
+                    }
+                });
+            };
 
-                    // 今年
-                    if (map26[dateStr26]) {
-                        const item = map26[dateStr26];
-                        const parsed = parseWMO(item.code, item.p);
-                        data26.push({
-                            d: String(i).padStart(2, '0'), half: i <= 15 ? "上半月" : "下半月",
-                            w: parsed.desc, t: `${Math.round(item.min)}~${Math.round(item.max)}℃`,
-                            p: item.p !== null ? item.p.toFixed(1) : "0.0", r: parsed.isRain, src: item.src, isDrizzle: parsed.isDrizzle
+            // -----------------------------------------
+            // CSV 导出功能
+            // -----------------------------------------
+            const exportCSV = () => {
+                // 定义 CSV 表头
+                const headers = ["城市", "年份", "日期", "时段", "天气状况", "最高温(°C)", "最低温(°C)", "是否降雨分类"];
+                let csvContent = headers.join(",") + "\n";
+                
+                // 遍历所有城市和年份写入数据
+                cities.forEach((city, cIdx) => {
+                    [lastYear.value, currentYear.value].forEach(year => {
+                        const daysData = allData.value[year]?.[cIdx] || [];
+                        daysData.forEach(day => {
+                            const row = [
+                                city.name,
+                                year,
+                                day.date,
+                                day.isFirstHalf ? "上半月" : "下半月",
+                                day.hasData ? day.desc : "暂无预测",
+                                day.hasData ? day.maxTemp : "",
+                                day.hasData ? day.minTemp : "",
+                                day.hasData ? (day.isRain ? "是" : "否") : ""
+                            ];
+                            csvContent += row.join(",") + "\n";
                         });
-                    } else { data26.push(baseline26[i-1]); }
-                }
+                    });
+                });
 
-                localData[res.city] = { data25, data26 };
+                // 添加 BOM 确保 Excel 能够正确识别 UTF-8 的中文内容
+                const bom = "\uFEFF";
+                const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+                
+                // 创建虚拟链接进行下载
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `气象数据_${currentYear.value}vs${lastYear.value}_6月.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // 初始化生命周期
+            onMounted(() => {
+                fetchAllData();
             });
 
-            globalData = localData;
-
-            if(showOverlay) {
-                ['chartOverlay', 'summaryOverlay', 'dailyOverlay'].forEach(id => document.getElementById(id).classList.add('hidden'));
-            } else {
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('mainContent').classList.remove('hidden');
-                document.getElementById('exportBtn').disabled = false;
-            }
-
-            if (errorCities.length > 0) {
-                document.getElementById('errorState').classList.remove('hidden');
-                document.getElementById('errorMsg').textContent = `${errorCities.join(', ')} API受限，已采用30年气候基准值替代，确保数据稳定。`;
-            } else {
-                document.getElementById('errorState').classList.add('hidden');
-            }
-
-            updateUI();
+            return {
+                cities,
+                activeCityIndex,
+                activeCity,
+                currentYear,
+                lastYear,
+                viewYear,
+                loadingGlobal,
+                loadingProgress,
+                activeTableData,
+                kpiData,
+                selectCity,
+                exportCSV
+            };
         }
-
-        function updateUI() {
-            let alertText = `当前查询：<strong>2026年${targetMonth}月</strong> vs <strong>2025年${targetMonth}月</strong>。`;
-            if (targetMonth < currentMonth) alertText += " (均为历史实况数据)";
-            else if (targetMonth === currentMonth) alertText += ` (包含实况 + 预报 + 气候基准兜底)`;
-            else alertText += " (超出16天预报极限，采用历史气候基准值)";
-            document.getElementById('dataAlert').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>${alertText}</span>`;
-            document.getElementById('chartTitle').textContent = `${targetMonth}月降雨天数同比分析`;
-            document.getElementById('dailyTitle').innerHTML = `<span class="w-1 h-5 bg-blue-600 rounded-full"></span>城市每日天气明细 (${targetMonth}月)`;
-            renderSummaryTable(); renderTabs(); renderDailyTable(); initChart();
-        }
-
-        function changeMonth(m) { targetMonth = parseInt(m); fetchMonthData(targetMonth, true); }
-
-        function renderSummaryTable() {
-            const days = getDaysInMonth(2026, targetMonth);
-            document.getElementById('summaryHead').innerHTML = `
-                <tr><th class="px-4 py-3 text-left font-semibold text-slate-600 uppercase text-xs" rowspan="2">城市</th><th class="px-4 py-3 text-center font-semibold text-slate-600 uppercase text-xs" rowspan="2">气温范围</th><th class="px-4 py-3 text-center font-semibold text-blue-700 uppercase text-xs border-l border-slate-200" colspan="2">2026年${targetMonth}月预估雨日</th><th class="px-4 py-3 text-center font-semibold text-slate-500 uppercase text-xs border-l border-slate-200" colspan="2">2025年${targetMonth}月实际雨日</th><th class="px-4 py-3 text-center font-semibold text-slate-600 uppercase text-xs border-l border-slate-200" rowspan="2">全月同比</th></tr>
-                <tr><th class="px-4 py-2 text-center text-[10px] font-medium text-blue-500 border-l border-slate-200">上半月(1-15)</th><th class="px-4 py-2 text-center text-[10px] font-medium text-blue-500">下半月(16-${days})</th><th class="px-4 py-2 text-center text-[10px] font-medium text-slate-400 border-l border-slate-200">上半月(1-15)</th><th class="px-4 py-2 text-center text-[10px] font-medium text-slate-400">下半月(16-${days})</th></tr>`;
-            const tbody = document.getElementById('summaryTableBody'); tbody.innerHTML = '';
-            CITIES.forEach(c => {
-                const city = c.name; if(!globalData[city]) return;
-                const d26 = globalData[city].data26, d25 = globalData[city].data25;
-                const r26_up = d26.filter(x => x.half === '上半月' && x.r).length, r26_down = d26.filter(x => x.half === '下半月' && x.r).length;
-                const r25_up = d25.filter(x => x.half === '上半月' && x.r).length, r25_down = d25.filter(x => x.half === '下半月' && x.r).length;
-                const total26 = r26_up + r26_down, total25 = r25_up + r25_down, change = total26 - total25;
-                const temps = d26.map(x => x.t).filter(x => x !== '--'); let tempRange = "--";
-                if (temps.length > 0) {
-                    const mins = temps.map(t => parseInt(t.split('~')[0])).filter(x => !isNaN(x));
-                    const maxs = temps.map(t => parseInt(t.split('~')[1])).filter(x => !isNaN(x));
-                    if(mins.length>0 && maxs.length>0) tempRange = `${Math.min(...mins)}~${Math.max(...maxs)}℃`;
-                }
-                let changeHtml = change > 0 ? `<span class="text-red-600 font-semibold">⬆️ +${change}天</span>` : change < 0 ? `<span class="text-green-600 font-semibold">⬇️ ${change}天</span>` : `<span class="text-slate-500 font-semibold">➡️ 持平</span>`;
-                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition"><td class="px-4 py-3.5 whitespace-nowrap font-medium text-slate-900">${city}</td><td class="px-4 py-3.5 whitespace-nowrap text-slate-600 text-center">${tempRange}</td><td class="px-4 py-3.5 whitespace-nowrap text-blue-700 font-semibold text-center border-l border-slate-100">${r26_up}天</td><td class="px-4 py-3.5 whitespace-nowrap text-blue-700 font-semibold text-center">${r26_down}天</td><td class="px-4 py-3.5 whitespace-nowrap text-slate-500 text-center border-l border-slate-100">${r25_up}天</td><td class="px-4 py-3.5 whitespace-nowrap text-slate-500 text-center">${r25_down}天</td><td class="px-4 py-3.5 whitespace-nowrap text-center border-l border-slate-100">${changeHtml}</td></tr>`;
-            });
-        }
-
-        function renderTabs() {
-            const tabsContainer = document.getElementById('cityTabs'); tabsContainer.innerHTML = '';
-            CITIES.forEach(c => {
-                const btn = document.createElement('button'); btn.textContent = c.name;
-                btn.className = `pill-tab ${c.name === currentCity ? 'active' : 'inactive'}`;
-                btn.onclick = () => { currentCity = c.name; renderTabs(); renderDailyTable(); };
-                tabsContainer.appendChild(btn);
-            });
-        }
-        function setYear(year) {
-            currentYear = year;
-            document.getElementById('btnYear26').className = `segmented-btn ${year === '26' ? 'active' : 'inactive'}`;
-            document.getElementById('btnYear25').className = `segmented-btn ${year === '25' ? 'active' : 'inactive'}`;
-            renderDailyTable();
-        }
-        function setHalfFilter(half) {
-            currentHalf = half;
-            document.querySelectorAll('#halfFilters button').forEach(btn => { btn.className = `chip ${btn.dataset.half === half ? 'active' : 'inactive'}`; });
-            renderDailyTable();
-        }
-        function renderDailyTable() {
-            const tbody = document.getElementById('dailyTableBody'); tbody.innerHTML = '';
-            const filterRain = document.getElementById('rainFilter').checked;
-            const data = currentYear === '26' ? globalData[currentCity].data26 : globalData[currentCity].data25;
-            data.forEach(day => {
-                if (filterRain && !day.r) return; 
-                if (currentHalf === 'up' && day.half !== '上半月') return;
-                if (currentHalf === 'down' && day.half !== '下半月') return;
-                let badgeClass = day.r ? 'rain-badge' : 'sun-badge';
-                if (day.isDrizzle) badgeClass = 'drizzle-badge';
-                if (day.src.includes('基准')) badgeClass = 'trend-badge';
-                tbody.innerHTML += `<tr class="hover:bg-slate-50/50 transition"><td class="px-5 py-3 whitespace-nowrap font-medium text-slate-900">${targetMonth}月${day.d}日</td><td class="px-5 py-3 whitespace-nowrap text-xs text-slate-500">${day.half}</td><td class="px-5 py-3 whitespace-nowrap text-slate-700">${day.w}</td><td class="px-5 py-3 whitespace-nowrap text-slate-600">${day.t}</td><td class="px-5 py-3 whitespace-nowrap text-slate-600">${day.p} mm</td><td class="px-5 py-3 whitespace-nowrap"><span class="px-2 inline-flex text-[10px] leading-5 font-semibold rounded-full ${badgeClass}">${day.isDrizzle ? '🌦️ 毛毛雨' : day.src}</span></td></tr>`;
-            });
-        }
-        function initChart() {
-            if (chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('rainChart').getContext('2d');
-            const labels = CITIES.map(c => c.name);
-            const data26 = labels.map(city => globalData[city] ? globalData[city].data26.filter(x => x.r).length : 0);
-            const data25 = labels.map(city => globalData[city] ? globalData[city].data25.filter(x => x.r).length : 0);
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: labels, datasets: [
-                    { label: `2026年${targetMonth}月`, data: data26, backgroundColor: 'rgba(37, 99, 235, 0.75)', borderRadius: 4 },
-                    { label: `2025年${targetMonth}月`, data: data25, backgroundColor: 'rgba(203, 213, 225, 0.75)', borderRadius: 4 }
-                ]},
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'rectRounded' } } }, scales: { x: { beginAtZero: true, title: { display: true, text: '降雨天数 (毛毛雨已排除)' }, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } } }
-            });
-        }
-        function exportToExcel() {
-            let csvContent = "\uFEFF"; 
-            csvContent += `【汇总表】2026年${targetMonth}月13城天气同比分析 (毛毛雨不计入)\n城市,26年上半月,26年下半月,26年全月,25年上半月,25年下半月,25年全月,同比\n`;
-            CITIES.forEach(c => {
-                const city = c.name; const d26 = globalData[city].data26, d25 = globalData[city].data25;
-                const r26_up = d26.filter(x => x.half === '上半月' && x.r).length, r26_down = d26.filter(x => x.half === '下半月' && x.r).length;
-                const r25_up = d25.filter(x => x.half === '上半月' && x.r).length, r25_down = d25.filter(x => x.half === '下半月' && x.r).length;
-                csvContent += `${city},${r26_up},${r26_down},${r26_up+r26_down},${r25_up},${r25_down},${r25_up+r25_down},${(r26_up+r26_down) - (r25_up+r25_down)}\n`;
-            });
-            csvContent += `\n\n【明细表】2026年${targetMonth}月每日详情\n城市,日期,时段,天气,气温,降水,下雨,数据来源\n`;
-            CITIES.forEach(c => { globalData[c.name].data26.forEach(day => { csvContent += `${c.name},${targetMonth}月${day.d}日,${day.half},${day.w},${day.t},${day.p},${day.r?'是':'否'},${day.src}\n`; }); });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-            link.download = `13城天气报告_${targetMonth}月_${today.toISOString().split('T')[0]}.csv`; link.click();
-        }
-        document.addEventListener('DOMContentLoaded', () => fetchMonthData(targetMonth, false));
-    </script>
+    }).mount('#app');
+</script>
 </body>
 </html>
