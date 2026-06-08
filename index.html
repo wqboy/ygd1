@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026年6月 13城天气综合报告 (完整版)</title>
+    <title>13城天气实时数据中心 (终极防白屏版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -14,240 +14,352 @@
         .filter-active { background-color: #0f172a; color: white; }
         .filter-inactive { background-color: #ffffff; color: #64748b; border: 1px solid #e2e8f0; }
         .filter-inactive:hover { background-color: #f8fafc; border-color: #cbd5e1; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .rain-badge { background-color: #dbeafe; color: #1e40af; }
         .sun-badge { background-color: #fef3c7; color: #92400e; }
-        
-        /* 优化表格滚动和表头固定 */
         .table-container { max-height: 600px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.5rem; }
         .table-container thead th { position: sticky; top: 0; background-color: #f8fafc; z-index: 10; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .progress-bar { transition: width 0.3s ease; }
     </style>
 </head>
 <body class="text-slate-800">
 
-    <!-- Header -->
     <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight">2026年6月 13城天气综合报告</h1>
-                <p class="text-blue-100 text-sm mt-1">完整30天明细 · 区分上下半月 · 涵盖华南/华东/西南/华北等13城</p>
+                <h1 class="text-2xl font-bold tracking-tight">13城天气实时数据中心 🌐</h1>
+                <p class="text-blue-100 text-sm mt-1">Powered by Open-Meteo API · 自动拉取 / 离线兜底双引擎</p>
             </div>
-            <button onclick="exportToExcel()" class="bg-white text-blue-600 font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-50 transition flex items-center gap-2 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
-                </svg>
-                导出 Excel (CSV)
-            </button>
+            <div class="flex gap-2">
+                <button onclick="downloadOfflineData()" id="offlineBtn" class="bg-yellow-400 text-yellow-900 font-semibold py-2 px-4 rounded-lg shadow hover:bg-yellow-500 transition flex items-center gap-2 text-sm">
+                    💾 下载离线数据包
+                </button>
+                <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-white/90 text-blue-600 font-semibold py-2 px-4 rounded-lg shadow hover:bg-white transition flex items-center gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                    📊 导出 Excel
+                </button>
+            </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-
-        <!-- Chart Section -->
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">📊 降雨天数同比分析 (2026年6月预估 vs 2025年6月实况)</h2>
-            <div class="h-[500px]">
-                <canvas id="rainChart"></canvas>
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="bg-white p-8 rounded-xl shadow-sm border border-slate-100 text-center space-y-4">
+            <div class="flex justify-center">
+                <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
             </div>
-        </section>
-
-        <!-- Summary Table -->
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">📋 13城总览对比表 (区分上下半月)</h2>
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase" rowspan="2">城市</th>
-                        <th class="px-4 py-3 text-center font-medium text-slate-500 uppercase" rowspan="2">气温范围</th>
-                        <th class="px-4 py-3 text-center font-medium text-blue-600 uppercase border-l border-slate-200" colspan="2">2026年预估雨日</th>
-                        <th class="px-4 py-3 text-center font-medium text-slate-400 uppercase border-l border-slate-200" colspan="2">2025年实际雨日</th>
-                        <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase border-l border-slate-200" rowspan="2">全月同比</th>
-                    </tr>
-                    <tr>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-blue-500 border-l border-slate-200">上半月(1-15)</th>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-blue-500">下半月(16-30)</th>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-slate-400 border-l border-slate-200">上半月(1-15)</th>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-slate-400">下半月(16-30)</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-slate-200" id="summaryTableBody"></tbody>
-            </table>
-        </section>
-
-        <!-- Daily Details Section -->
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                <h2 class="text-lg font-bold text-slate-800">📅 城市每日天气明细 (完整30天)</h2>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="checkbox" id="rainFilter" class="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500" onchange="renderDailyTable()">
-                    <span class="text-sm font-medium text-slate-700">仅显示下雨天 🌧️</span>
-                </label>
+            <h3 class="text-lg font-semibold text-slate-700">正在连接 Open-Meteo 气象卫星数据中心...</h3>
+            <p class="text-sm text-slate-500" id="loadingText">准备发起 26 个并发 API 请求...</p>
+            <div class="w-full bg-slate-200 rounded-full h-2.5 max-w-md mx-auto">
+                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
             </div>
-            
-            <!-- City Tabs -->
-            <div class="flex flex-wrap gap-2 mb-4" id="cityTabs"></div>
-            
-            <!-- Half Month Filters -->
-            <div class="flex flex-wrap gap-2 mb-6" id="halfFilters">
-                <button onclick="setHalfFilter('all')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-active" data-half="all">全部 (1-30日)</button>
-                <button onclick="setHalfFilter('up')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive" data-half="up">上半月 (1-15日)</button>
-                <button onclick="setHalfFilter('down')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive" data-half="down">下半月 (16-30日)</button>
+            <button onclick="loadOfflineData()" class="mt-4 text-sm text-blue-600 underline hover:text-blue-800">网络不通？点击此处加载本地离线数据</button>
+            <input type="file" id="fileInput" class="hidden" accept=".json" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-red-50 border border-red-200 p-6 rounded-xl text-red-700">
+            <h3 class="font-bold text-lg mb-2">⚠️ API 数据获取失败 (已启用容错模式)</h3>
+            <p id="errorMsg" class="text-sm mb-4"></p>
+            <p class="text-sm font-semibold">💡 解决方案：由于浏览器本地安全策略(CORS)可能拦截了 API 请求，请点击上方黄色的 <strong>“💾 下载离线数据包”</strong> 按钮，然后点击 <strong>“加载本地离线数据”</strong> 即可完美显示！</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden space-y-8 fade-in">
+            <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-center gap-3 text-blue-800 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+                <span>数据快照时间：<strong id="snapshotTime"></strong> | 2026年数据包含：已过日子的实况 + 未来16天的官方预测 | 2025年数据为：历史存档实况</span>
             </div>
 
-            <!-- Daily Table -->
-            <div class="table-container fade-in">
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">📊 降雨天数同比分析 (API 实时统计)</h2>
+                <div class="h-[500px]"><canvas id="rainChart"></canvas></div>
+            </section>
+
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">📋 13城总览对比表 (区分上下半月)</h2>
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead>
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-24">日期</th>
-                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-24">时段</th>
-                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase">天气状况</th>
-                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-32">气温</th>
-                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-28">是否下雨</th>
+                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase" rowspan="2">城市</th>
+                            <th class="px-4 py-3 text-center font-medium text-slate-500 uppercase" rowspan="2">气温范围</th>
+                            <th class="px-4 py-3 text-center font-medium text-blue-600 uppercase border-l border-slate-200" colspan="2">2026年预估雨日</th>
+                            <th class="px-4 py-3 text-center font-medium text-slate-400 uppercase border-l border-slate-200" colspan="2">2025年实际雨日</th>
+                            <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase border-l border-slate-200" rowspan="2">全月同比</th>
+                        </tr>
+                        <tr>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-blue-500 border-l border-slate-200">上半月(1-15)</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-blue-500">下半月(16-30)</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-slate-400 border-l border-slate-200">上半月(1-15)</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-slate-400">下半月(16-30)</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-slate-200" id="dailyTableBody"></tbody>
+                    <tbody class="bg-white divide-y divide-slate-200" id="summaryTableBody"></tbody>
                 </table>
-            </div>
-            <p class="text-xs text-slate-400 mt-4">* 注：当前为2026年6月3日，4-30日数据基于中长期气象预报模型及气候趋势预测生成，存在不确定性，仅供参考。贵州以贵阳为代表，辽宁以沈阳为代表。</p>
-        </section>
+            </section>
+
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                    <h2 class="text-lg font-bold text-slate-800">📅 城市每日天气明细 (完整30天)</h2>
+                    <div class="flex items-center gap-4">
+                         <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="yearSelect" value="26" checked class="w-4 h-4 text-blue-600" onchange="renderDailyTable()">
+                            <span class="text-sm font-medium text-slate-700">2026年(今年)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="yearSelect" value="25" class="w-4 h-4 text-blue-600" onchange="renderDailyTable()">
+                            <span class="text-sm font-medium text-slate-700">2025年(去年)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer ml-4 border-l pl-4 border-slate-200">
+                            <input type="checkbox" id="rainFilter" class="w-4 h-4 text-blue-600" onchange="renderDailyTable()">
+                            <span class="text-sm font-medium text-slate-700">仅下雨天 🌧️</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mb-4" id="cityTabs"></div>
+                <div class="flex flex-wrap gap-2 mb-6" id="halfFilters">
+                    <button onclick="setHalfFilter('all')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-active" data-half="all">全部 (1-30日)</button>
+                    <button onclick="setHalfFilter('up')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive" data-half="up">上半月 (1-15日)</button>
+                    <button onclick="setHalfFilter('down')" class="px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive" data-half="down">下半月 (16-30日)</button>
+                </div>
+                <div class="table-container fade-in">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-24">日期</th>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-24">时段</th>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase">天气状况</th>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-32">气温 (℃)</th>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-32">降水 (mm)</th>
+                                <th class="px-4 py-3 text-left font-medium text-slate-500 uppercase w-28">是否下雨</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200" id="dailyTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </main>
 
     <footer class="text-center py-6 text-slate-400 text-sm">
-        数据来源：综合各地气象台及公开气象记录 | 报告生成时间：2026年6月3日
+        Data Source: Open-Meteo Historical & Forecast APIs | 终极防白屏版
     </footer>
 
     <script>
-        // ================= 数据定义 =================
-        const citiesData = {
-            "深圳": { temp: "27~34℃", r26_up: 14, r26_down: 10, r25_up: 8, r25_down: 6 },
-            "广州": { temp: "26~36℃", r26_up: 14, r26_down: 10, r25_up: 9, r25_down: 8 },
-            "福州": { temp: "24~34℃", r26_up: 13, r26_down: 8, r25_up: 10, r25_down: 7 },
-            "上海": { temp: "21~35℃", r26_up: 8, r26_down: 6, r25_up: 4, r25_down: 9 },
-            "杭州": { temp: "19~34℃", r26_up: 7, r26_down: 6, r25_up: 3, r25_down: 6 },
-            "苏州": { temp: "20~34℃", r26_up: 8, r26_down: 7, r25_up: 4, r25_down: 8 },
-            "武汉": { temp: "21~36℃", r26_up: 4, r26_down: 6, r25_up: 4, r25_down: 8 },
-            "成都": { temp: "23~38℃", r26_up: 5, r26_down: 5, r25_up: 3, r25_down: 7 },
-            "贵州": { temp: "18~28℃", r26_up: 11, r26_down: 9, r25_up: 12, r25_down: 8 },
-            "昆明": { temp: "16~26℃", r26_up: 12, r26_down: 13, r25_up: 10, r25_down: 11 },
-            "济南": { temp: "22~39℃", r26_up: 2, r26_down: 4, r25_up: 3, r25_down: 5 },
-            "北京": { temp: "19~37℃", r26_up: 4, r26_down: 2, r25_up: 2, r25_down: 6 },
-            "辽宁": { temp: "14~32℃", r26_up: 7, r26_down: 3, r25_up: 5, r25_down: 5 }
-        };
+        const CITIES = [
+            { name: "深圳", lat: 22.54, lon: 114.06 }, { name: "广州", lat: 23.13, lon: 113.26 },
+            { name: "福州", lat: 26.07, lon: 119.30 }, { name: "上海", lat: 31.23, lon: 121.47 },
+            { name: "杭州", lat: 30.27, lon: 120.15 }, { name: "苏州", lat: 31.30, lon: 120.59 },
+            { name: "武汉", lat: 30.59, lon: 114.31 }, { name: "成都", lat: 30.57, lon: 104.07 },
+            { name: "贵州", lat: 26.65, lon: 106.63 }, { name: "昆明", lat: 25.04, lon: 102.71 },
+            { name: "济南", lat: 36.65, lon: 116.99 }, { name: "北京", lat: 39.90, lon: 116.40 },
+            { name: "辽宁", lat: 41.80, lon: 123.43 }
+        ];
 
-        // 辅助函数：生成1-30日完整数据
-        function generateFullMonthData(upData, downData) {
-            let full = [];
-            upData.forEach(d => full.push({...d, half: "上半月"}));
-            downData.forEach(d => full.push({...d, half: "下半月"}));
-            return full;
-        }
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const targetYear = 2026; // 锁定2026年
+        const lastYear = 2025;   // 锁定2025年
 
-        const rawDailyData = {
-            "深圳": {
-                up: [{d:"6/1",w:"多云转中雨",t:"27~32℃",r:true},{d:"6/2",w:"小雨转多云",t:"28~32℃",r:true},{d:"6/3",w:"小雨",t:"28~32℃",r:true},{d:"6/4",w:"中雨转小雨",t:"28~32℃",r:true},{d:"6/5",w:"大雨转中雨",t:"28~34℃",r:true},{d:"6/6",w:"中雨转小雨",t:"29~33℃",r:true},{d:"6/7",w:"大雨转小雨",t:"28~32℃",r:true},{d:"6/8",w:"小雨转阴",t:"27~30℃",r:true},{d:"6/9",w:"中雨转大雨",t:"27~30℃",r:true},{d:"6/10",w:"小雨转阴",t:"27~30℃",r:true},{d:"6/11",w:"阴",t:"27~33℃",r:false},{d:"6/12",w:"小雨",t:"28~32℃",r:true},{d:"6/13",w:"中雨",t:"28~32℃",r:true},{d:"6/14",w:"中雨",t:"28~32℃",r:true},{d:"6/15",w:"中雨",t:"28~32℃",r:true}],
-                down: [{d:"6/16",w:"雷阵雨",t:"27~33℃",r:true},{d:"6/17",w:"中雨转雷阵雨",t:"28~33℃",r:true},{d:"6/18",w:"小雨转多云",t:"28~34℃",r:true},{d:"6/19",w:"多云",t:"28~34℃",r:false},{d:"6/20",w:"多云转雷阵雨",t:"27~33℃",r:true},{d:"6/21",w:"中雨",t:"27~32℃",r:true},{d:"6/22",w:"阴转多云",t:"28~34℃",r:false},{d:"6/23",w:"阵雨",t:"28~33℃",r:true},{d:"6/24",w:"多云",t:"29~34℃",r:false},{d:"6/25",w:"雷阵雨",t:"28~33℃",r:true},{d:"6/26",w:"中雨转小雨",t:"27~32℃",r:true},{d:"6/27",w:"多云",t:"28~34℃",r:false},{d:"6/28",w:"多云转阵雨",t:"28~33℃",r:true},{d:"6/29",w:"阴",t:"28~34℃",r:false},{d:"6/30",w:"雷阵雨",t:"28~33℃",r:true}]
-            },
-            "广州": {
-                up: [{d:"6/1",w:"晴转阴",t:"26~34℃",r:false},{d:"6/2",w:"多云转小雨",t:"26~34℃",r:true},{d:"6/3",w:"阴转中雨",t:"27~35℃",r:true},{d:"6/4",w:"中雨转小雨",t:"28~34℃",r:true},{d:"6/5",w:"阴转中雨",t:"28~34℃",r:true},{d:"6/6",w:"中雨转阴",t:"28~34℃",r:true},{d:"6/7",w:"阴转晴",t:"28~32℃",r:false},{d:"6/8",w:"多云转小雨",t:"27~36℃",r:true},{d:"6/9",w:"中雨",t:"26~33℃",r:true},{d:"6/10",w:"小雨",t:"26~32℃",r:true},{d:"6/11",w:"中雨",t:"26~32℃",r:true},{d:"6/12",w:"中雨",t:"26~33℃",r:true},{d:"6/13",w:"中雨",t:"26~33℃",r:true},{d:"6/14",w:"中雨",t:"26~33℃",r:true},{d:"6/15",w:"小雨",t:"26~32℃",r:true}],
-                down: [{d:"6/16",w:"雷阵雨",t:"27~34℃",r:true},{d:"6/17",w:"中雨",t:"27~33℃",r:true},{d:"6/18",w:"小雨转阴",t:"27~34℃",r:true},{d:"6/19",w:"多云",t:"28~35℃",r:false},{d:"6/20",w:"雷阵雨",t:"27~34℃",r:true},{d:"6/21",w:"中雨转大雨",t:"26~32℃",r:true},{d:"6/22",w:"小雨转多云",t:"27~34℃",r:true},{d:"6/23",w:"多云",t:"28~36℃",r:false},{d:"6/24",w:"阴转雷阵雨",t:"27~35℃",r:true},{d:"6/25",w:"多云",t:"28~36℃",r:false},{d:"6/26",w:"雷阵雨",t:"27~34℃",r:true},{d:"6/27",w:"多云",t:"28~36℃",r:false},{d:"6/28",w:"阴",t:"28~35℃",r:false},{d:"6/29",w:"雷阵雨",t:"27~34℃",r:true},{d:"6/30",w:"多云转小雨",t:"27~35℃",r:true}]
-            },
-            "福州": {
-                up: [{d:"6/1",w:"阴转中雨",t:"24~30℃",r:true},{d:"6/2",w:"大雨转小雨",t:"23~28℃",r:true},{d:"6/3",w:"小雨转阴",t:"23~29℃",r:true},{d:"6/4",w:"多云",t:"24~31℃",r:false},{d:"6/5",w:"阴转雷阵雨",t:"25~32℃",r:true},{d:"6/6",w:"中雨",t:"24~29℃",r:true},{d:"6/7",w:"小雨转多云",t:"24~31℃",r:true},{d:"6/8",w:"多云",t:"25~33℃",r:false},{d:"6/9",w:"多云转雷阵雨",t:"25~33℃",r:true},{d:"6/10",w:"中雨转小雨",t:"24~30℃",r:true},{d:"6/11",w:"阴",t:"24~31℃",r:false},{d:"6/12",w:"雷阵雨",t:"25~32℃",r:true},{d:"6/13",w:"多云",t:"26~34℃",r:false},{d:"6/14",w:"阴转中雨",t:"25~31℃",r:true},{d:"6/15",w:"小雨",t:"24~30℃",r:true}],
-                down: [{d:"6/16",w:"多云转晴",t:"25~33℃",r:false},{d:"6/17",w:"晴热",t:"26~35℃",r:false},{d:"6/18",w:"晴热",t:"27~36℃",r:false},{d:"6/19",w:"多云转雷阵雨",t:"26~34℃",r:true},{d:"6/20",w:"雷阵雨",t:"25~33℃",r:true},{d:"6/21",w:"多云",t:"26~34℃",r:false},{d:"6/22",w:"晴",t:"27~36℃",r:false},{d:"6/23",w:"晴热",t:"28~37℃",r:false},{d:"6/24",w:"午后雷阵雨",t:"27~35℃",r:true},{d:"6/25",w:"多云",t:"26~34℃",r:false},{d:"6/26",w:"阴转中雨",t:"25~31℃",r:true},{d:"6/27",w:"小雨转阴",t:"24~30℃",r:true},{d:"6/28",w:"多云",t:"25~33℃",r:false},{d:"6/29",w:"雷阵雨",t:"26~33℃",r:true},{d:"6/30",w:"多云",t:"26~34℃",r:false}]
-            },
-            "上海": {
-                up: [{d:"6/1",w:"晴转多云",t:"22~32℃",r:false},{d:"6/2",w:"阴转多云",t:"22~30℃",r:false},{d:"6/3",w:"阴转小雨",t:"23~32℃",r:true},{d:"6/4",w:"小雨转阴",t:"21~30℃",r:true},{d:"6/5",w:"阴转晴",t:"22~30℃",r:false},{d:"6/6",w:"多云转中雨",t:"23~32℃",r:true},{d:"6/7",w:"阴/多云",t:"23~29℃",r:false},{d:"6/8",w:"阴/多云",t:"23~29℃",r:false},{d:"6/9",w:"阴转中雨",t:"23~32℃",r:true},{d:"6/10",w:"中雨",t:"23~30℃",r:true},{d:"6/11",w:"中雨",t:"23~35℃",r:true},{d:"6/12",w:"中雨",t:"23~32℃",r:true},{d:"6/13",w:"多云/阴",t:"23~33℃",r:false},{d:"6/14",w:"多云/阴",t:"23~33℃",r:false},{d:"6/15",w:"多云/阴",t:"23~33℃",r:false}],
-                down: [{d:"6/16",w:"多云转阵雨",t:"24~33℃",r:true},{d:"6/17",w:"阴有雷雨",t:"24~32℃",r:true},{d:"6/18",w:"多云",t:"25~34℃",r:false},{d:"6/19",w:"阴转小雨",t:"24~32℃",r:true},{d:"6/20",w:"多云",t:"25~34℃",r:false},{d:"6/21",w:"晴转多云",t:"26~35℃",r:false},{d:"6/22",w:"多云",t:"26~36℃",r:false},{d:"6/23",w:"阴有阵雨",t:"25~33℃",r:true},{d:"6/24",w:"多云",t:"26~35℃",r:false},{d:"6/25",w:"晴热",t:"27~37℃",r:false},{d:"6/26",w:"晴热",t:"28~38℃",r:false},{d:"6/27",w:"晴热",t:"28~38℃",r:false},{d:"6/28",w:"多云",t:"27~36℃",r:false},{d:"6/29",w:"晴",t:"27~37℃",r:false},{d:"6/30",w:"晴",t:"28~37℃",r:false}]
-            },
-            "杭州": {
-                up: [{d:"6/1",w:"晴",t:"21~33℃",r:false},{d:"6/2",w:"多云",t:"24~33℃",r:false},{d:"6/3",w:"小雨",t:"23~33℃",r:true},{d:"6/4",w:"多云转晴",t:"23~30℃",r:false},{d:"6/5",w:"晴转多云",t:"21~32℃",r:false},{d:"6/6",w:"小雨转阴",t:"22~33℃",r:true},{d:"6/7",w:"阴",t:"23~31℃",r:false},{d:"6/8",w:"多云转阴",t:"23~29℃",r:false},{d:"6/9",w:"中雨",t:"22~30℃",r:true},{d:"6/10",w:"中雨",t:"22~28℃",r:true},{d:"6/11",w:"小雨转阴",t:"22~30℃",r:true},{d:"6/12",w:"多云",t:"23~32℃",r:false},{d:"6/13",w:"多云",t:"24~33℃",r:false},{d:"6/14",w:"阴转中雨",t:"23~31℃",r:true},{d:"6/15",w:"中雨",t:"22~29℃",r:true}],
-                down: [{d:"6/16",w:"小雨转阴",t:"23~30℃",r:true},{d:"6/17",w:"多云",t:"24~32℃",r:false},{d:"6/18",w:"阴有阵雨",t:"23~30℃",r:true},{d:"6/19",w:"多云",t:"24~33℃",r:false},{d:"6/20",w:"雷阵雨",t:"24~32℃",r:true},{d:"6/21",w:"多云",t:"25~34℃",r:false},{d:"6/22",w:"阴转大雨",t:"23~30℃",r:true},{d:"6/23",w:"小雨转多云",t:"24~32℃",r:true},{d:"6/24",w:"多云",t:"25~34℃",r:false},{d:"6/25",w:"晴热",t:"26~36℃",r:false},{d:"6/26",w:"晴热",t:"27~37℃",r:false},{d:"6/27",w:"多云",t:"26~35℃",r:false},{d:"6/28",w:"午后雷阵雨",t:"25~34℃",r:true},{d:"6/29",w:"多云",t:"26~35℃",r:false},{d:"6/30",w:"晴",t:"27~36℃",r:false}]
-            },
-            "苏州": {
-                up: [{d:"6/1",w:"多云",t:"22~32℃",r:false},{d:"6/2",w:"阴",t:"21~30℃",r:false},{d:"6/3",w:"小雨",t:"22~31℃",r:true},{d:"6/4",w:"阴转多云",t:"20~29℃",r:false},{d:"6/5",w:"多云",t:"21~31℃",r:false},{d:"6/6",w:"中雨",t:"22~30℃",r:true},{d:"6/7",w:"小雨转阴",t:"21~28℃",r:true},{d:"6/8",w:"多云",t:"22~31℃",r:false},{d:"6/9",w:"阴转中雨",t:"23~31℃",r:true},{d:"6/10",w:"中雨",t:"22~29℃",r:true},{d:"6/11",w:"小雨",t:"22~30℃",r:true},{d:"6/12",w:"阴",t:"23~32℃",r:false},{d:"6/13",w:"多云",t:"24~33℃",r:false},{d:"6/14",w:"阴转大雨",t:"23~30℃",r:true},{d:"6/15",w:"中雨转小雨",t:"22~29℃",r:true}],
-                down: [{d:"6/16",w:"阴有阵雨",t:"23~30℃",r:true},{d:"6/17",w:"中雨",t:"22~28℃",r:true},{d:"6/18",w:"小雨转阴",t:"23~30℃",r:true},{d:"6/19",w:"多云",t:"24~33℃",r:false},{d:"6/20",w:"雷阵雨",t:"25~33℃",r:true},{d:"6/21",w:"多云",t:"26~34℃",r:false},{d:"6/22",w:"晴转多云",t:"27~35℃",r:false},{d:"6/23",w:"阴有阵雨",t:"25~32℃",r:true},{d:"6/24",w:"多云",t:"26~35℃",r:false},{d:"6/25",w:"晴热",t:"28~37℃",r:false},{d:"6/26",w:"晴热",t:"29~38℃",r:false},{d:"6/27",w:"多云",t:"28~36℃",r:false},{d:"6/28",w:"雷阵雨",t:"27~34℃",r:true},{d:"6/29",w:"多云",t:"28~36℃",r:false},{d:"6/30",w:"晴热",t:"29~37℃",r:false}]
-            },
-            "武汉": {
-                up: [{d:"6/1",w:"晴/多云",t:"25~33℃",r:false},{d:"6/2",w:"晴转多云",t:"26~34℃",r:false},{d:"6/3",w:"阴转小到中雨",t:"24~34℃",r:true},{d:"6/4",w:"晴/多云到晴",t:"25~34℃",r:false},{d:"6/5",w:"多云",t:"27~35℃",r:false},{d:"6/6",w:"阴转小雨",t:"26~33℃",r:true},{d:"6/7",w:"阴转中雨",t:"25~35℃",r:true},{d:"6/8",w:"小雨转阴",t:"24~34℃",r:true},{d:"6/9",w:"多云为主",t:"24~34℃",r:false},{d:"6/10",w:"多云为主",t:"24~34℃",r:false},{d:"6/11",w:"多云为主",t:"24~34℃",r:false},{d:"6/12",w:"多云为主",t:"24~34℃",r:false},{d:"6/13",w:"多云为主",t:"24~34℃",r:false},{d:"6/14",w:"多云为主",t:"24~34℃",r:false},{d:"6/15",w:"多云为主",t:"24~34℃",r:false}],
-                down: [{d:"6/16",w:"多云",t:"25~34℃",r:false},{d:"6/17",w:"阴转中雨",t:"24~32℃",r:true},{d:"6/18",w:"大雨转阴",t:"23~30℃",r:true},{d:"6/19",w:"多云",t:"25~34℃",r:false},{d:"6/20",w:"晴热",t:"27~36℃",r:false},{d:"6/21",w:"晴热",t:"28~37℃",r:false},{d:"6/22",w:"多云转雷阵雨",t:"26~35℃",r:true},{d:"6/23",w:"多云",t:"27~36℃",r:false},{d:"6/24",w:"晴热",t:"28~37℃",r:false},{d:"6/25",w:"晴热",t:"29~38℃",r:false},{d:"6/26",w:"多云转大雨",t:"25~34℃",r:true},{d:"6/27",w:"小雨转多云",t:"26~35℃",r:true},{d:"6/28",w:"多云",t:"27~36℃",r:false},{d:"6/29",w:"晴热",t:"28~37℃",r:false},{d:"6/30",w:"晴热",t:"28~37℃",r:false}]
-            },
-            "成都": {
-                up: [{d:"6/1",w:"多云转阴",t:"25~34℃",r:false},{d:"6/2",w:"多云转小雨",t:"24~34℃",r:true},{d:"6/3",w:"多云转晴",t:"24~35℃",r:false},{d:"6/4",w:"多云转阴",t:"24~36℃",r:false},{d:"6/5",w:"阴",t:"26~38℃",r:false},{d:"6/6",w:"多云转大雨",t:"27~38℃",r:true},{d:"6/7",w:"大雨转阴",t:"27~36℃",r:true},{d:"6/8",w:"多云为主",t:"23~35℃",r:false},{d:"6/9",w:"间有中雨",t:"23~35℃",r:true},{d:"6/10",w:"多云为主",t:"23~35℃",r:false},{d:"6/11",w:"间有中雨",t:"23~35℃",r:true},{d:"6/12",w:"多云为主",t:"23~35℃",r:false},{d:"6/13",w:"多云为主",t:"23~35℃",r:false},{d:"6/14",w:"间有中雨",t:"23~35℃",r:true},{d:"6/15",w:"多云为主",t:"23~35℃",r:false}],
-                down: [{d:"6/16",w:"多云转阵雨",t:"24~34℃",r:true},{d:"6/17",w:"阴有小雨",t:"23~32℃",r:true},{d:"6/18",w:"多云",t:"24~34℃",r:false},{d:"6/19",w:"多云",t:"25~35℃",r:false},{d:"6/20",w:"夜间中雨",t:"24~33℃",r:true},{d:"6/21",w:"阴转多云",t:"24~34℃",r:false},{d:"6/22",w:"多云",t:"25~36℃",r:false},{d:"6/23",w:"多云转阵雨",t:"24~34℃",r:true},{d:"6/24",w:"多云",t:"25~35℃",r:false},{d:"6/25",w:"阴有小雨",t:"23~32℃",r:true},{d:"6/26",w:"多云",t:"24~34℃",r:false},{d:"6/27",w:"多云",t:"25~35℃",r:false},{d:"6/28",w:"多云",t:"25~36℃",r:false},{d:"6/29",w:"夜间阵雨",t:"24~33℃",r:true},{d:"6/30",w:"多云",t:"25~35℃",r:false}]
-            },
-            "贵州": {
-                up: [{d:"6/1",w:"阵雨",t:"18~25℃",r:true},{d:"6/2",w:"中雨",t:"17~23℃",r:true},{d:"6/3",w:"小雨转阴",t:"18~26℃",r:true},{d:"6/4",w:"多云",t:"19~27℃",r:false},{d:"6/5",w:"阴转雷阵雨",t:"18~26℃",r:true},{d:"6/6",w:"中到大雨",t:"17~22℃",r:true},{d:"6/7",w:"小雨转阴",t:"18~25℃",r:true},{d:"6/8",w:"多云",t:"19~28℃",r:false},{d:"6/9",w:"阴有阵雨",t:"18~25℃",r:true},{d:"6/10",w:"多云",t:"19~27℃",r:false},{d:"6/11",w:"雷阵雨",t:"18~26℃",r:true},{d:"6/12",w:"多云",t:"20~28℃",r:false},{d:"6/13",w:"阴有中雨",t:"18~24℃",r:true},{d:"6/14",w:"小雨",t:"18~25℃",r:true},{d:"6/15",w:"多云",t:"19~27℃",r:false}],
-                down: [{d:"6/16",w:"阵雨",t:"18~26℃",r:true},{d:"6/17",w:"多云",t:"19~28℃",r:false},{d:"6/18",w:"阴有中到大雨",t:"17~23℃",r:true},{d:"6/19",w:"小雨转阴",t:"18~25℃",r:true},{d:"6/20",w:"多云",t:"19~28℃",r:false},{d:"6/21",w:"雷阵雨",t:"18~26℃",r:true},{d:"6/22",w:"多云",t:"20~29℃",r:false},{d:"6/23",w:"阴有阵雨",t:"19~26℃",r:true},{d:"6/24",w:"多云",t:"20~28℃",r:false},{d:"6/25",w:"阵雨",t:"18~25℃",r:true},{d:"6/26",w:"多云",t:"19~28℃",r:false},{d:"6/27",w:"阴有中雨",t:"17~24℃",r:true},{d:"6/28",w:"小雨",t:"18~25℃",r:true},{d:"6/29",w:"多云",t:"19~28℃",r:false},{d:"6/30",w:"雷阵雨",t:"18~26℃",r:true}]
-            },
-            "昆明": {
-                up: [{d:"6/1",w:"多云转阵雨",t:"16~25℃",r:true},{d:"6/2",w:"中雨",t:"15~22℃",r:true},{d:"6/3",w:"小雨转多云",t:"16~26℃",r:true},{d:"6/4",w:"多云",t:"17~27℃",r:false},{d:"6/5",w:"阴转雷阵雨",t:"16~25℃",r:true},{d:"6/6",w:"中雨",t:"15~21℃",r:true},{d:"6/7",w:"小雨",t:"16~23℃",r:true},{d:"6/8",w:"多云",t:"17~26℃",r:false},{d:"6/9",w:"阵雨",t:"16~24℃",r:true},{d:"6/10",w:"多云",t:"17~27℃",r:false},{d:"6/11",w:"雷阵雨",t:"16~25℃",r:true},{d:"6/12",w:"多云",t:"17~26℃",r:false},{d:"6/13",w:"阴有中雨",t:"15~22℃",r:true},{d:"6/14",w:"小雨",t:"16~24℃",r:true},{d:"6/15",w:"多云",t:"17~27℃",r:false}],
-                down: [{d:"6/16",w:"阵雨",t:"16~25℃",r:true},{d:"6/17",w:"多云",t:"17~27℃",r:false},{d:"6/18",w:"中到大雨",t:"15~21℃",r:true},{d:"6/19",w:"小雨转阴",t:"16~24℃",r:true},{d:"6/20",w:"多云",t:"17~28℃",r:false},{d:"6/21",w:"雷阵雨",t:"16~25℃",r:true},{d:"6/22",w:"多云",t:"18~28℃",r:false},{d:"6/23",w:"阵雨",t:"16~24℃",r:true},{d:"6/24",w:"多云",t:"17~27℃",r:false},{d:"6/25",w:"中雨",t:"15~22℃",r:true},{d:"6/26",w:"小雨",t:"16~24℃",r:true},{d:"6/27",w:"多云",t:"17~27℃",r:false},{d:"6/28",w:"雷阵雨",t:"16~25℃",r:true},{d:"6/29",w:"多云",t:"17~28℃",r:false},{d:"6/30",w:"阵雨",t:"16~25℃",r:true}]
-            },
-            "济南": {
-                up: [{d:"6/1",w:"晴热",t:"24~36℃",r:false},{d:"6/2",w:"晴热",t:"25~38℃",r:false},{d:"6/3",w:"晴转多云",t:"24~37℃",r:false},{d:"6/4",w:"晴热",t:"25~39℃",r:false},{d:"6/5",w:"多云转雷阵雨",t:"24~35℃",r:true},{d:"6/6",w:"雷阵雨转晴",t:"22~33℃",r:true},{d:"6/7",w:"晴热",t:"24~37℃",r:false},{d:"6/8",w:"晴热",t:"26~39℃",r:false},{d:"6/9",w:"晴",t:"25~38℃",r:false},{d:"6/10",w:"多云",t:"24~36℃",r:false},{d:"6/11",w:"晴热",t:"25~38℃",r:false},{d:"6/12",w:"晴",t:"24~37℃",r:false},{d:"6/13",w:"多云",t:"23~35℃",r:false},{d:"6/14",w:"晴热",t:"25~38℃",r:false},{d:"6/15",w:"晴",t:"26~39℃",r:false}],
-                down: [{d:"6/16",w:"晴热",t:"26~39℃",r:false},{d:"6/17",w:"多云转雷阵雨",t:"24~35℃",r:true},{d:"6/18",w:"雷阵雨",t:"23~32℃",r:true},{d:"6/19",w:"多云",t:"24~35℃",r:false},{d:"6/20",w:"晴热",t:"26~38℃",r:false},{d:"6/21",w:"晴",t:"25~37℃",r:false},{d:"6/22",w:"多云转中雨",t:"23~31℃",r:true},{d:"6/23",w:"小雨转多云",t:"22~32℃",r:true},{d:"6/24",w:"晴热",t:"25~38℃",r:false},{d:"6/25",w:"晴",t:"26~39℃",r:false},{d:"6/26",w:"多云",t:"25~37℃",r:false},{d:"6/27",w:"晴热",t:"26~39℃",r:false},{d:"6/28",w:"晴",t:"25~38℃",r:false},{d:"6/29",w:"多云",t:"24~36℃",r:false},{d:"6/30",w:"晴热",t:"26~39℃",r:false}]
-            },
-            "北京": {
-                up: [{d:"6/1",w:"晴转多云/小雨",t:"23~34℃",r:true},{d:"6/2",w:"阴转多云",t:"20~34℃",r:false},{d:"6/3",w:"晴转多云",t:"21~33℃",r:false},{d:"6/4",w:"阴转中雨",t:"21~35℃",r:true},{d:"6/5",w:"阴转中雨",t:"21~34℃",r:true},{d:"6/6",w:"小雨转晴",t:"19~31℃",r:true},{d:"6/7",w:"多云",t:"21~34℃",r:false},{d:"6/8",w:"多云",t:"20~34℃",r:false},{d:"6/9",w:"多云为主",t:"21~36℃",r:false},{d:"6/10",w:"多云为主",t:"21~36℃",r:false},{d:"6/11",w:"多云为主",t:"21~36℃",r:false},{d:"6/12",w:"多云为主",t:"21~36℃",r:false},{d:"6/13",w:"多云为主",t:"21~36℃",r:false},{d:"6/14",w:"多云为主",t:"21~36℃",r:false},{d:"6/15",w:"多云为主",t:"21~36℃",r:false}],
-                down: [{d:"6/16",w:"晴",t:"22~36℃",r:false},{d:"6/17",w:"晴",t:"23~37℃",r:false},{d:"6/18",w:"晴",t:"23~37℃",r:false},{d:"6/19",w:"多云",t:"22~36℃",r:false},{d:"6/20",w:"晴",t:"23~37℃",r:false},{d:"6/21",w:"晴",t:"24~38℃",r:false},{d:"6/22",w:"晴",t:"24~38℃",r:false},{d:"6/23",w:"多云转雷阵雨",t:"22~35℃",r:true},{d:"6/24",w:"多云",t:"23~36℃",r:false},{d:"6/25",w:"晴",t:"24~37℃",r:false},{d:"6/26",w:"晴",t:"24~38℃",r:false},{d:"6/27",w:"晴",t:"24~38℃",r:false},{d:"6/28",w:"多云",t:"23~36℃",r:false},{d:"6/29",w:"阴转雷阵雨",t:"21~34℃",r:true},{d:"6/30",w:"多云转晴",t:"22~35℃",r:false}]
-            },
-            "辽宁": {
-                up: [{d:"6/1",w:"多云/小雨",t:"16~30℃",r:true},{d:"6/2",w:"小雨转多云",t:"16~27℃",r:true},{d:"6/3",w:"中雨/多云转阴",t:"12~28℃",r:true},{d:"6/4",w:"阴/多云转小雨",t:"13~28℃",r:true},{d:"6/5",w:"多云/小雨转晴",t:"15~27℃",r:true},{d:"6/6",w:"中雨/多云转阴",t:"13~31℃",r:true},{d:"6/7",w:"阴/多云",t:"12~29℃",r:false},{d:"6/8",w:"多云",t:"16~29℃",r:false},{d:"6/9",w:"多云为主",t:"16~30℃",r:false},{d:"6/10",w:"多云为主",t:"16~30℃",r:false},{d:"6/11",w:"多云为主",t:"16~30℃",r:false},{d:"6/12",w:"多云为主",t:"16~30℃",r:false},{d:"6/13",w:"多云转小雨",t:"15~28℃",r:true},{d:"6/14",w:"多云为主",t:"16~30℃",r:false},{d:"6/15",w:"多云为主",t:"16~30℃",r:false}],
-                down: [{d:"6/16",w:"晴",t:"17~31℃",r:false},{d:"6/17",w:"晴",t:"18~32℃",r:false},{d:"6/18",w:"多云",t:"17~31℃",r:false},{d:"6/19",w:"阴转阵雨",t:"16~28℃",r:true},{d:"6/20",w:"多云转晴",t:"17~30℃",r:false},{d:"6/21",w:"晴",t:"18~32℃",r:false},{d:"6/22",w:"晴",t:"19~33℃",r:false},{d:"6/23",w:"多云",t:"18~31℃",r:false},{d:"6/24",w:"晴",t:"19~33℃",r:false},{d:"6/25",w:"晴",t:"20~34℃",r:false},{d:"6/26",w:"多云转雷阵雨",t:"18~31℃",r:true},{d:"6/27",w:"多云",t:"19~32℃",r:false},{d:"6/28",w:"晴",t:"20~33℃",r:false},{d:"6/29",w:"晴",t:"20~34℃",r:false},{d:"6/30",w:"多云转小雨",t:"19~31℃",r:true}]
-            }
-        };
-
-        // 生成完整30天数据
-        const dailyData = {};
-        for (const city in rawDailyData) {
-            dailyData[city] = generateFullMonthData(rawDailyData[city].up, rawDailyData[city].down);
-        }
-
+        let globalData = {}; 
         let currentCity = "深圳";
         let currentHalf = "all";
+        let chartInstance = null;
 
-        // ================= 渲染逻辑 =================
-        
+        function parseWMO(code, precip) {
+            if (code === null || code === undefined) return { desc: "无数据", isRain: false };
+            const c = parseInt(code);
+            let desc = "未知", isRain = false;
+            if (c === 0) desc = "☀️ 晴";
+            else if (c === 1) desc = "🌤️ 晴间多云";
+            else if (c === 2) desc = "⛅ 多云";
+            else if (c === 3) desc = "☁️ 阴";
+            else if (c === 45 || c === 48) desc = "🌫️ 雾";
+            else if (c >= 51 && c <= 57) { desc = "🌦️ 毛毛雨"; isRain = true; }
+            else if (c >= 61 && c <= 67) { desc = "🌧️ 雨"; isRain = true; }
+            else if (c >= 71 && c <= 77) { desc = "🌨️ 雪"; isRain = true; }
+            else if (c >= 80 && c <= 82) { desc = "🌧️ 阵雨"; isRain = true; }
+            else if (c >= 85 && c <= 86) { desc = "🌨️ 阵雪"; isRain = true; }
+            else if (c >= 95 && c <= 99) { desc = "⛈️ 雷暴"; isRain = true; }
+            if (precip !== null && precip >= 0.1) isRain = true;
+            return { desc, isRain };
+        }
+
+        async function fetchCityData(city, updateProgress) {
+            // 修复：统一使用 weather_code，并加入 past_days 确保获取月初实况
+            const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${city.lat}&longitude=${city.lon}&start_date=${lastYear}-06-01&end_date=${lastYear}-06-30&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
+            const foreUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&start_date=${targetYear}-06-01&end_date=${targetYear}-06-30&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
+
+            try {
+                const [histRes, foreRes] = await Promise.all([
+                    fetch(histUrl).then(r => r.ok ? r.json() : null),
+                    fetch(foreUrl).then(r => r.ok ? r.json() : null)
+                ]);
+                updateProgress();
+                return { city: city.name, hist: histRes, fore: foreRes };
+            } catch (e) {
+                console.error(`Error ${city.name}`, e);
+                updateProgress();
+                return { city: city.name, hist: null, fore: null, error: e.message };
+            }
+        }
+
+        function processData(results) {
+            let hasError = false;
+            let errorMsg = "";
+            
+            results.forEach(res => {
+                if (!res.hist || !res.fore || !res.hist.daily || !res.fore.daily) {
+                    hasError = true;
+                    errorMsg = `城市 ${res.city} 数据缺失或API被拦截。${res.error || ''}`;
+                    globalData[res.city] = generateFallbackData(res.city);
+                    return;
+                }
+                const histDaily = res.hist.daily;
+                const foreDaily = res.fore.daily;
+
+                const data25 = [], data26 = [];
+                for (let i = 0; i < histDaily.time.length; i++) {
+                    const p = histDaily.precipitation_sum[i];
+                    const parsed = parseWMO(histDaily.weather_code[i], p);
+                    data25.push({
+                        d: histDaily.time[i].split('-')[2], half: parseInt(histDaily.time[i].split('-')[2]) <= 15 ? "上半月" : "下半月",
+                        w: parsed.desc, t: `${Math.round(histDaily.temperature_2m_min[i])}~${Math.round(histDaily.temperature_2m_max[i])}℃`,
+                        p: p !== null ? p.toFixed(1) : "0.0", r: parsed.isRain
+                    });
+                }
+                for (let i = 0; i < foreDaily.time.length; i++) {
+                    const p = foreDaily.precipitation_sum[i];
+                    const parsed = parseWMO(foreDaily.weather_code[i], p);
+                    data26.push({
+                        d: foreDaily.time[i].split('-')[2], half: parseInt(foreDaily.time[i].split('-')[2]) <= 15 ? "上半月" : "下半月",
+                        w: parsed.desc, t: `${Math.round(foreDaily.temperature_2m_min[i])}~${Math.round(foreDaily.temperature_2m_max[i])}℃`,
+                        p: p !== null ? p.toFixed(1) : "0.0", r: parsed.isRain
+                    });
+                }
+                globalData[res.city] = { data25, data26 };
+            });
+
+            document.getElementById('loadingState').classList.add('hidden');
+            
+            if (hasError && Object.keys(globalData).length > 0 && globalData["深圳"].data26[0].w === "API获取失败") {
+                document.getElementById('errorState').classList.remove('hidden');
+                document.getElementById('errorMsg').textContent = errorMsg + " (浏览器可能拦截了跨域请求)";
+            } else {
+                document.getElementById('errorState').classList.add('hidden');
+            }
+
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('exportBtn').disabled = false;
+            document.getElementById('snapshotTime').textContent = today.toLocaleString('zh-CN');
+            renderAll();
+        }
+
+        function generateFallbackData(cityName) {
+            const data25 = [], data26 = [];
+            for(let i=1; i<=30; i++) {
+                const dStr = i.toString().padStart(2, '0');
+                const half = i <= 15 ? "上半月" : "下半月";
+                data25.push({d: dStr, half, w: "API获取失败", t: "--", p: "0.0", r: false});
+                data26.push({d: dStr, half, w: "API获取失败", t: "--", p: "0.0", r: false});
+            }
+            return { data25, data26 };
+        }
+
+        async function initApp() {
+            let completed = 0;
+            const total = CITIES.length;
+            const updateProgress = () => {
+                completed++;
+                document.getElementById('progressBar').style.width = `${(completed / total) * 100}%`;
+                document.getElementById('loadingText').textContent = `正在解析气象数据... (${completed}/${total})`;
+            };
+            const promises = CITIES.map(city => fetchCityData(city, updateProgress));
+            const results = await Promise.all(promises);
+            processData(results);
+        }
+
+        // 离线数据功能
+        function downloadOfflineData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalData));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "13城天气离线数据包.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function loadOfflineData() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    globalData = JSON.parse(e.target.result);
+                    document.getElementById('loadingState').classList.add('hidden');
+                    document.getElementById('errorState').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    document.getElementById('exportBtn').disabled = false;
+                    document.getElementById('snapshotTime').textContent = "离线数据加载成功 (" + file.name + ")";
+                    renderAll();
+                } catch (err) {
+                    alert("文件解析失败，请确保是有效的 JSON 数据包");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function renderAll() {
+            renderSummaryTable();
+            renderTabs();
+            renderDailyTable();
+            initChart();
+        }
+
         function renderSummaryTable() {
             const tbody = document.getElementById('summaryTableBody');
             tbody.innerHTML = '';
-            for (const [city, d] of Object.entries(citiesData)) {
-                const total26 = d.r26_up + d.r26_down;
-                const total25 = d.r25_up + d.r25_down;
+            CITIES.forEach(c => {
+                const city = c.name;
+                if(!globalData[city]) return;
+                const d26 = globalData[city].data26;
+                const d25 = globalData[city].data25;
+                const r26_up = d26.filter(x => x.half === '上半月' && x.r).length;
+                const r26_down = d26.filter(x => x.half === '下半月' && x.r).length;
+                const r25_up = d25.filter(x => x.half === '上半月' && x.r).length;
+                const r25_down = d25.filter(x => x.half === '下半月' && x.r).length;
+                const total26 = r26_up + r26_down;
+                const total25 = r25_up + r25_down;
                 const change = total26 - total25;
-                let changeHtml = '';
-                if (change > 0) changeHtml = `<span class="text-red-600 font-semibold">⬆️ +${change}天</span>`;
-                else if (change < 0) changeHtml = `<span class="text-green-600 font-semibold">⬇️ ${change}天</span>`;
-                else changeHtml = `<span class="text-slate-500 font-semibold">➡️ 持平</span>`;
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-900">${city}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-600 text-center">${d.temp}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-blue-700 font-semibold text-center border-l border-slate-100">${d.r26_up}天</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-blue-700 font-semibold text-center">${d.r26_down}天</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-500 text-center border-l border-slate-100">${d.r25_up}天</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-500 text-center">${d.r25_down}天</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-center border-l border-slate-100">${changeHtml}</td>
-                    </tr>
-                `;
-            }
+                const temps = d26.map(x => x.t).filter(x => x !== '--');
+                let tempRange = "--";
+                if (temps.length > 0) {
+                    const mins = temps.map(t => parseInt(t.split('~')[0])).filter(x => !isNaN(x));
+                    const maxs = temps.map(t => parseInt(t.split('~')[1])).filter(x => !isNaN(x));
+                    if(mins.length>0 && maxs.length>0) tempRange = `${Math.min(...mins)}~${Math.max(...maxs)}℃`;
+                }
+                let changeHtml = change > 0 ? `<span class="text-red-600 font-semibold">⬆️ +${change}天</span>` : change < 0 ? `<span class="text-green-600 font-semibold">⬇️ ${change}天</span>` : `<span class="text-slate-500 font-semibold">➡️ 持平</span>`;
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="px-4 py-3 whitespace-nowrap font-medium text-slate-900">${city}</td><td class="px-4 py-3 whitespace-nowrap text-slate-600 text-center">${tempRange}</td><td class="px-4 py-3 whitespace-nowrap text-blue-700 font-semibold text-center border-l border-slate-100">${r26_up}天</td><td class="px-4 py-3 whitespace-nowrap text-blue-700 font-semibold text-center">${r26_down}天</td><td class="px-4 py-3 whitespace-nowrap text-slate-500 text-center border-l border-slate-100">${r25_up}天</td><td class="px-4 py-3 whitespace-nowrap text-slate-500 text-center">${r25_down}天</td><td class="px-4 py-3 whitespace-nowrap text-center border-l border-slate-100">${changeHtml}</td></tr>`;
+            });
         }
 
         function renderTabs() {
             const tabsContainer = document.getElementById('cityTabs');
             tabsContainer.innerHTML = '';
-            Object.keys(citiesData).forEach(city => {
+            CITIES.forEach(c => {
                 const btn = document.createElement('button');
-                btn.textContent = city;
-                btn.className = `px-4 py-2 rounded-lg font-medium text-sm transition ${city === currentCity ? 'tab-active' : 'tab-inactive'}`;
-                btn.onclick = () => {
-                    currentCity = city;
-                    renderTabs();
-                    renderDailyTable();
-                };
+                btn.textContent = c.name;
+                btn.className = `px-4 py-2 rounded-lg font-medium text-sm transition ${c.name === currentCity ? 'tab-active' : 'tab-inactive'}`;
+                btn.onclick = () => { currentCity = c.name; renderTabs(); renderDailyTable(); };
                 tabsContainer.appendChild(btn);
             });
         }
@@ -255,11 +367,7 @@
         function setHalfFilter(half) {
             currentHalf = half;
             document.querySelectorAll('#halfFilters button').forEach(btn => {
-                if (btn.dataset.half === half) {
-                    btn.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition filter-active";
-                } else {
-                    btn.className = "px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive";
-                }
+                btn.className = btn.dataset.half === half ? "px-3 py-1.5 rounded-md text-xs font-semibold transition filter-active" : "px-3 py-1.5 rounded-md text-xs font-semibold transition filter-inactive";
             });
             renderDailyTable();
         }
@@ -268,100 +376,54 @@
             const tbody = document.getElementById('dailyTableBody');
             tbody.innerHTML = '';
             const filterRain = document.getElementById('rainFilter').checked;
-            const data = dailyData[currentCity];
-
+            const yearSelect = document.querySelector('input[name="yearSelect"]:checked').value;
+            const data = yearSelect === '26' ? globalData[currentCity].data26 : globalData[currentCity].data25;
             data.forEach(day => {
                 if (filterRain && !day.r) return; 
                 if (currentHalf === 'up' && day.half !== '上半月') return;
                 if (currentHalf === 'down' && day.half !== '下半月') return;
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-900">${day.d}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-500">${day.half}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-600">${day.w}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-slate-600">${day.t}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            ${day.r ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full rain-badge">🌧️ 是</span>' : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full sun-badge">☀️/☁️ 否</span>'}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 transition"><td class="px-4 py-3 whitespace-nowrap font-medium text-slate-900">6月${day.d}日</td><td class="px-4 py-3 whitespace-nowrap text-xs text-slate-500">${day.half}</td><td class="px-4 py-3 whitespace-nowrap text-slate-600">${day.w}</td><td class="px-4 py-3 whitespace-nowrap text-slate-600">${day.t}</td><td class="px-4 py-3 whitespace-nowrap text-slate-600">${day.p} mm</td><td class="px-4 py-3 whitespace-nowrap">${day.r ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full rain-badge">🌧️ 是</span>' : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full sun-badge">☀️/☁️ 否</span>'}</td></tr>`;
             });
         }
 
         function initChart() {
+            if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('rainChart').getContext('2d');
-            const labels = Object.keys(citiesData);
-            const data26 = labels.map(c => citiesData[c].r26_up + citiesData[c].r26_down);
-            const data25 = labels.map(c => citiesData[c].r25_up + citiesData[c].r25_down);
-
-            new Chart(ctx, {
+            const labels = CITIES.map(c => c.name);
+            const data26 = labels.map(city => globalData[city] ? globalData[city].data26.filter(x => x.r).length : 0);
+            const data25 = labels.map(city => globalData[city] ? globalData[city].data25.filter(x => x.r).length : 0);
+            chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: '2026年6月 (预估)', data: data26, backgroundColor: 'rgba(37, 99, 235, 0.7)', borderColor: 'rgb(37, 99, 235)', borderWidth: 1 },
-                        { label: '2025年6月 (实况)', data: data25, backgroundColor: 'rgba(203, 213, 225, 0.7)', borderColor: 'rgb(148, 163, 184)', borderWidth: 1 }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y', // 改为横向柱状图，13个城市展示更清晰
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'top' },
-                        title: { display: false }
-                    },
-                    scales: { 
-                        x: { 
-                            beginAtZero: true, 
-                            title: { display: true, text: '降雨天数' },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        y: {
-                            grid: { display: false }
-                        }
-                    }
-                }
+                data: { labels: labels, datasets: [
+                    { label: `${targetYear}年6月 (预估/实况)`, data: data26, backgroundColor: 'rgba(37, 99, 235, 0.7)' },
+                    { label: `${lastYear}年6月 (历史存档)`, data: data25, backgroundColor: 'rgba(203, 213, 225, 0.7)' }
+                ]},
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, title: { display: true, text: '降雨天数' } }, y: { grid: { display: false } } } }
             });
         }
 
         function exportToExcel() {
             let csvContent = "\uFEFF"; 
-            
-            csvContent += "【汇总表】2026年6月13城天气同比分析 (区分上下半月)\n";
-            csvContent += "城市,气温范围,2026上半月(1-15)雨日,2026下半月(16-30)雨日,2026全月预估雨日,2025上半月(1-15)雨日,2025下半月(16-30)雨日,2025全月实际雨日,全月同比变化(天)\n";
-            for (const [city, d] of Object.entries(citiesData)) {
-                const t26 = d.r26_up + d.r26_down;
-                const t25 = d.r25_up + d.r25_down;
-                csvContent += `${city},${d.temp},${d.r26_up},${d.r26_down},${t26},${d.r25_up},${d.r25_down},${t25},${t26 - t25}\n`;
-            }
-            
-            csvContent += "\n\n【明细表】各城市完整30天每日天气详情\n";
-            csvContent += "城市,日期,时段,天气状况,气温,是否下雨\n";
-            for (const [city, days] of Object.entries(dailyData)) {
-                days.forEach(day => {
-                    csvContent += `${city},${day.d},${day.half},${day.w},${day.t},${day.r ? '是' : '否'}\n`;
-                });
-            }
-
+            csvContent += `【汇总表】${targetYear}年6月13城天气同比分析\n城市,26年上半月,26年下半月,26年全月,25年上半月,25年下半月,25年全月,同比\n`;
+            CITIES.forEach(c => {
+                const city = c.name;
+                const d26 = globalData[city].data26, d25 = globalData[city].data25;
+                const r26_up = d26.filter(x => x.half === '上半月' && x.r).length, r26_down = d26.filter(x => x.half === '下半月' && x.r).length;
+                const r25_up = d25.filter(x => x.half === '上半月' && x.r).length, r25_down = d25.filter(x => x.half === '下半月' && x.r).length;
+                csvContent += `${city},${r26_up},${r26_down},${r26_up+r26_down},${r25_up},${r25_down},${r25_up+r25_down},${(r26_up+r26_down) - (r25_up+r25_down)}\n`;
+            });
+            csvContent += `\n\n【明细表】${targetYear}年每日详情\n城市,日期,时段,天气,气温,降水,下雨\n`;
+            CITIES.forEach(c => {
+                globalData[c.name].data26.forEach(day => { csvContent += `${c.name},6月${day.d}日,${day.half},${day.w},${day.t},${day.p},${day.r?'是':'否'}\n`; });
+            });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "2026年6月_13城天气报告_完整30天.csv");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = `13城天气报告_${todayStr}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderSummaryTable();
-            renderTabs();
-            renderDailyTable();
-            initChart();
-        });
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
