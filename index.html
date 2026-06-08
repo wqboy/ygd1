@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>优购哆·全国13城气象数据中心 </title>
+    <title>13城气象数据中心 (磐石稳定版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -63,7 +63,7 @@
     <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <div id="loadingState" class="bg-white p-12 rounded-2xl shadow-sm border border-slate-100 text-center space-y-4">
             <div class="flex justify-center"><svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
-            <h3 class="text-lg font-semibold text-slate-800">正在同步全国气象台模型数据...</h3>
+            <h3 class="text-lg font-semibold text-slate-800">正在同步全球气象模型数据...</h3>
             <p class="text-sm text-slate-500" id="loadingText">初始化确定性数据引擎...</p>
             <div class="w-full bg-slate-100 rounded-full h-1.5 max-w-sm mx-auto"><div id="progressBar" class="bg-blue-600 h-1.5 rounded-full progress-bar" style="width: 0%"></div></div>
         </div>
@@ -133,7 +133,7 @@
                 </div>
                 <div class="mt-4 text-[11px] text-slate-500 leading-relaxed space-y-1">
                     <p>* <strong>毛毛雨 (WMO Code 51-57)</strong> 降水量极微，<strong>不计入</strong>降雨天数统计。</p>
-                    <p>* 气象台逐日天气预报的物理极限为 16 天。超出此范围的数据，采用该城市历史30年气候平均基准值生成“📊 气候基准”，确保数据幂等性。</p>
+                    <p>* 逐日天气预报的物理极限为 16 天。超出此范围的数据，采用该城市历史30年气候平均基准值生成“📊 气候基准”，确保数据幂等性（每次刷新结果绝对一致）。</p>
                 </div>
             </section>
         </div>
