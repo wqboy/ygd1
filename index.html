@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>13城天气实时数据中心 (终极防白屏版)</title>
+    <title>13城天气实时数据中心 (终极修复版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -29,16 +29,11 @@
         <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">13城天气实时数据中心 🌐</h1>
-                <p class="text-blue-100 text-sm mt-1">Powered by Open-Meteo API · 自动拉取 / 离线兜底双引擎</p>
+                <p class="text-blue-100 text-sm mt-1">Powered by Open-Meteo API · 三段式精准狙击引擎 (实况+预报无缝拼接)</p>
             </div>
-            <div class="flex gap-2">
-                <button onclick="downloadOfflineData()" id="offlineBtn" class="bg-yellow-400 text-yellow-900 font-semibold py-2 px-4 rounded-lg shadow hover:bg-yellow-500 transition flex items-center gap-2 text-sm">
-                    💾 下载离线数据包
-                </button>
-                <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-white/90 text-blue-600 font-semibold py-2 px-4 rounded-lg shadow hover:bg-white transition flex items-center gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                    📊 导出 Excel
-                </button>
-            </div>
+            <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-white/90 text-blue-600 font-semibold py-2 px-4 rounded-lg shadow hover:bg-white transition flex items-center gap-2 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                📊 导出 Excel
+            </button>
         </div>
     </header>
 
@@ -53,26 +48,23 @@
                 </svg>
             </div>
             <h3 class="text-lg font-semibold text-slate-700">正在连接 Open-Meteo 气象卫星数据中心...</h3>
-            <p class="text-sm text-slate-500" id="loadingText">准备发起 26 个并发 API 请求...</p>
+            <p class="text-sm text-slate-500" id="loadingText">正在初始化三段式请求引擎...</p>
             <div class="w-full bg-slate-200 rounded-full h-2.5 max-w-md mx-auto">
                 <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
             </div>
-            <button onclick="loadOfflineData()" class="mt-4 text-sm text-blue-600 underline hover:text-blue-800">网络不通？点击此处加载本地离线数据</button>
-            <input type="file" id="fileInput" class="hidden" accept=".json" onchange="handleFileSelect(event)">
         </div>
 
         <!-- Error State -->
         <div id="errorState" class="hidden bg-red-50 border border-red-200 p-6 rounded-xl text-red-700">
-            <h3 class="font-bold text-lg mb-2">⚠️ API 数据获取失败 (已启用容错模式)</h3>
+            <h3 class="font-bold text-lg mb-2">⚠️ API 数据获取异常</h3>
             <p id="errorMsg" class="text-sm mb-4"></p>
-            <p class="text-sm font-semibold">💡 解决方案：由于浏览器本地安全策略(CORS)可能拦截了 API 请求，请点击上方黄色的 <strong>“💾 下载离线数据包”</strong> 按钮，然后点击 <strong>“加载本地离线数据”</strong> 即可完美显示！</p>
         </div>
 
         <!-- Main Content -->
         <div id="mainContent" class="hidden space-y-8 fade-in">
             <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg flex items-center gap-3 text-blue-800 text-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
-                <span>数据快照时间：<strong id="snapshotTime"></strong> | 2026年数据包含：已过日子的实况 + 未来16天的官方预测 | 2025年数据为：历史存档实况</span>
+                <span>数据快照时间：<strong id="snapshotTime"></strong> | 2026年数据包含：1-8日实况 + 9-30日官方预测 | 2025年数据为：历史存档实况</span>
             </div>
 
             <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
@@ -146,10 +138,11 @@
     </main>
 
     <footer class="text-center py-6 text-slate-400 text-sm">
-        Data Source: Open-Meteo Historical & Forecast APIs | 终极防白屏版
+        Data Source: Open-Meteo Historical & Forecast APIs | 终极修复版 (三段式引擎)
     </footer>
 
     <script>
+        // 修正：辽宁->沈阳，贵州->贵阳
         const CITIES = [
             { name: "深圳", lat: 22.54, lon: 114.06 }, { name: "广州", lat: 23.13, lon: 113.26 },
             { name: "福州", lat: 26.07, lon: 119.30 }, { name: "上海", lat: 31.23, lon: 121.47 },
@@ -162,8 +155,17 @@
 
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
-        const targetYear = 2026; // 锁定2026年
-        const lastYear = 2025;   // 锁定2025年
+        const targetYear = 2026; 
+        const lastYear = 2025;   
+        
+        // 动态计算今年的分割点 (今天是6月9日，所以 1-8 日是过去，9-30 是未来)
+        const currentMonth = today.getMonth() + 1;
+        const currentDay = today.getDate();
+        let splitDay = currentMonth === 6 ? currentDay : 1; 
+        if (splitDay > 30) splitDay = 30;
+        
+        // 格式化日期
+        const fmtDate = (y, m, d) => `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
         let globalData = {}; 
         let currentCity = "深圳";
@@ -189,85 +191,137 @@
             return { desc, isRain };
         }
 
-        async function fetchCityData(city, updateProgress) {
-            // 修复：统一使用 weather_code，并加入 past_days 确保获取月初实况
-            const histUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${city.lat}&longitude=${city.lon}&start_date=${lastYear}-06-01&end_date=${lastYear}-06-30&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
-            const foreUrl = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&start_date=${targetYear}-06-01&end_date=${targetYear}-06-30&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
-
+        // 安全 fetch，带详细错误信息
+        async function safeFetch(url) {
             try {
-                const [histRes, foreRes] = await Promise.all([
-                    fetch(histUrl).then(r => r.ok ? r.json() : null),
-                    fetch(foreUrl).then(r => r.ok ? r.json() : null)
-                ]);
-                updateProgress();
-                return { city: city.name, hist: histRes, fore: foreRes };
+                const res = await fetch(url);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    console.error(`API Error ${res.status}: ${url}`, errText);
+                    return null;
+                }
+                return await res.json();
             } catch (e) {
-                console.error(`Error ${city.name}`, e);
-                updateProgress();
-                return { city: city.name, hist: null, fore: null, error: e.message };
+                console.error(`Network Error: ${url}`, e);
+                return null;
             }
         }
 
-        function processData(results) {
-            let hasError = false;
-            let errorMsg = "";
+        async function fetchCityData(city, updateProgress) {
+            const baseParams = `latitude=${city.lat}&longitude=${city.lon}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Shanghai`;
+            
+            // 1. 去年全月 (Archive)
+            const url_lastYear = `https://archive-api.open-meteo.com/v1/archive?${baseParams}&start_date=${fmtDate(lastYear,6,1)}&end_date=${fmtDate(lastYear,6,30)}`;
+            
+            // 2. 今年已过去 (Archive) - 如果今天就是1号，则不需要这段
+            let url_thisYearPast = null;
+            if (splitDay > 1) {
+                url_thisYearPast = `https://archive-api.open-meteo.com/v1/archive?${baseParams}&start_date=${fmtDate(targetYear,6,1)}&end_date=${fmtDate(targetYear,6,splitDay-1)}`;
+            }
+            
+            // 3. 今天及未来 (Forecast)
+            const url_thisYearFuture = `https://api.open-meteo.com/v1/forecast?${baseParams}&start_date=${fmtDate(targetYear,6,splitDay)}&end_date=${fmtDate(targetYear,6,30)}`;
+
+            const [resLastYear, resThisPast, resThisFuture] = await Promise.all([
+                safeFetch(url_lastYear),
+                url_thisYearPast ? safeFetch(url_thisYearPast) : Promise.resolve(null),
+                safeFetch(url_thisYearFuture)
+            ]);
+
+            updateProgress();
+            return { city: city.name, resLastYear, resThisPast, resThisFuture };
+        }
+
+        function processResults(results) {
+            let errorCities = [];
             
             results.forEach(res => {
-                if (!res.hist || !res.fore || !res.hist.daily || !res.fore.daily) {
-                    hasError = true;
-                    errorMsg = `城市 ${res.city} 数据缺失或API被拦截。${res.error || ''}`;
-                    globalData[res.city] = generateFallbackData(res.city);
-                    return;
-                }
-                const histDaily = res.hist.daily;
-                const foreDaily = res.fore.daily;
+                const data25 = [];
+                const data26 = [];
 
-                const data25 = [], data26 = [];
-                for (let i = 0; i < histDaily.time.length; i++) {
-                    const p = histDaily.precipitation_sum[i];
-                    const parsed = parseWMO(histDaily.weather_code[i], p);
-                    data25.push({
-                        d: histDaily.time[i].split('-')[2], half: parseInt(histDaily.time[i].split('-')[2]) <= 15 ? "上半月" : "下半月",
-                        w: parsed.desc, t: `${Math.round(histDaily.temperature_2m_min[i])}~${Math.round(histDaily.temperature_2m_max[i])}℃`,
-                        p: p !== null ? p.toFixed(1) : "0.0", r: parsed.isRain
-                    });
+                // 处理去年数据
+                if (res.resLastYear && res.resLastYear.daily) {
+                    const d = res.resLastYear.daily;
+                    // 兼容 weather_code 和 weathercode
+                    const codes = d.weather_code || d.weathercode || [];
+                    for (let i = 0; i < d.time.length; i++) {
+                        const p = d.precipitation_sum[i];
+                        const parsed = parseWMO(codes[i], p);
+                        const dayNum = parseInt(d.time[i].split('-')[2]);
+                        data25.push({
+                            d: String(dayNum).padStart(2, '0'), 
+                            half: dayNum <= 15 ? "上半月" : "下半月",
+                            w: parsed.desc, 
+                            t: `${Math.round(d.temperature_2m_min[i])}~${Math.round(d.temperature_2m_max[i])}℃`,
+                            p: p !== null ? p.toFixed(1) : "0.0", 
+                            r: parsed.isRain
+                        });
+                    }
+                } else {
+                    errorCities.push(`${res.city}(去年)`);
                 }
-                for (let i = 0; i < foreDaily.time.length; i++) {
-                    const p = foreDaily.precipitation_sum[i];
-                    const parsed = parseWMO(foreDaily.weather_code[i], p);
+
+                // 处理今年数据 (拼接 Past + Future)
+                let thisYearDaily = [];
+                
+                // 拼接 Past
+                if (res.resThisPast && res.resThisPast.daily) {
+                    const d = res.resThisPast.daily;
+                    const codes = d.weather_code || d.weathercode || [];
+                    for (let i = 0; i < d.time.length; i++) {
+                        thisYearDaily.push({ time: d.time[i], p: d.precipitation_sum[i], code: codes[i], min: d.temperature_2m_min[i], max: d.temperature_2m_max[i] });
+                    }
+                }
+                
+                // 拼接 Future
+                if (res.resThisFuture && res.resThisFuture.daily) {
+                    const d = res.resThisFuture.daily;
+                    const codes = d.weather_code || d.weathercode || [];
+                    for (let i = 0; i < d.time.length; i++) {
+                        thisYearDaily.push({ time: d.time[i], p: d.precipitation_sum[i], code: codes[i], min: d.temperature_2m_min[i], max: d.temperature_2m_max[i] });
+                    }
+                }
+
+                if (thisYearDaily.length === 0) {
+                    errorCities.push(`${res.city}(今年)`);
+                }
+
+                thisYearDaily.sort((a,b) => a.time.localeCompare(b.time));
+                thisYearDaily.forEach(item => {
+                    const parsed = parseWMO(item.code, item.p);
+                    const dayNum = parseInt(item.time.split('-')[2]);
                     data26.push({
-                        d: foreDaily.time[i].split('-')[2], half: parseInt(foreDaily.time[i].split('-')[2]) <= 15 ? "上半月" : "下半月",
-                        w: parsed.desc, t: `${Math.round(foreDaily.temperature_2m_min[i])}~${Math.round(foreDaily.temperature_2m_max[i])}℃`,
-                        p: p !== null ? p.toFixed(1) : "0.0", r: parsed.isRain
+                        d: String(dayNum).padStart(2, '0'),
+                        half: dayNum <= 15 ? "上半月" : "下半月",
+                        w: parsed.desc,
+                        t: `${Math.round(item.min)}~${Math.round(item.max)}℃`,
+                        p: item.p !== null ? item.p.toFixed(1) : "0.0",
+                        r: parsed.isRain
                     });
+                });
+
+                // 兜底：如果数据不足30天，补齐空数据防止UI崩溃
+                while(data25.length < 30) {
+                    const dayNum = data25.length + 1;
+                    data25.push({ d: String(dayNum).padStart(2, '0'), half: dayNum <= 15 ? "上半月" : "下半月", w: "无数据", t: "--", p: "0.0", r: false });
                 }
+                while(data26.length < 30) {
+                    const dayNum = data26.length + 1;
+                    data26.push({ d: String(dayNum).padStart(2, '0'), half: dayNum <= 15 ? "上半月" : "下半月", w: "无数据", t: "--", p: "0.0", r: false });
+                }
+
                 globalData[res.city] = { data25, data26 };
             });
 
             document.getElementById('loadingState').classList.add('hidden');
-            
-            if (hasError && Object.keys(globalData).length > 0 && globalData["深圳"].data26[0].w === "API获取失败") {
+            if (errorCities.length > 0) {
                 document.getElementById('errorState').classList.remove('hidden');
-                document.getElementById('errorMsg').textContent = errorMsg + " (浏览器可能拦截了跨域请求)";
-            } else {
-                document.getElementById('errorState').classList.add('hidden');
+                document.getElementById('errorMsg').textContent = `部分数据获取失败: ${errorCities.join(', ')}。请检查网络连接或稍后重试（Archive API 可能有几天延迟）。已使用兜底数据填充。`;
             }
-
             document.getElementById('mainContent').classList.remove('hidden');
             document.getElementById('exportBtn').disabled = false;
             document.getElementById('snapshotTime').textContent = today.toLocaleString('zh-CN');
             renderAll();
-        }
-
-        function generateFallbackData(cityName) {
-            const data25 = [], data26 = [];
-            for(let i=1; i<=30; i++) {
-                const dStr = i.toString().padStart(2, '0');
-                const half = i <= 15 ? "上半月" : "下半月";
-                data25.push({d: dStr, half, w: "API获取失败", t: "--", p: "0.0", r: false});
-                data26.push({d: dStr, half, w: "API获取失败", t: "--", p: "0.0", r: false});
-            }
-            return { data25, data26 };
         }
 
         async function initApp() {
@@ -280,42 +334,7 @@
             };
             const promises = CITIES.map(city => fetchCityData(city, updateProgress));
             const results = await Promise.all(promises);
-            processData(results);
-        }
-
-        // 离线数据功能
-        function downloadOfflineData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalData));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "13城天气离线数据包.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function loadOfflineData() {
-            document.getElementById('fileInput').click();
-        }
-
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    globalData = JSON.parse(e.target.result);
-                    document.getElementById('loadingState').classList.add('hidden');
-                    document.getElementById('errorState').classList.add('hidden');
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    document.getElementById('exportBtn').disabled = false;
-                    document.getElementById('snapshotTime').textContent = "离线数据加载成功 (" + file.name + ")";
-                    renderAll();
-                } catch (err) {
-                    alert("文件解析失败，请确保是有效的 JSON 数据包");
-                }
-            };
-            reader.readAsText(file);
+            processResults(results);
         }
 
         function renderAll() {
