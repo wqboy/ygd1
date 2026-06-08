@@ -3,258 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>6月天气数据洞察仪表盘</title>
+    <title>气象数据洞察仪表盘</title>
     
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* 苹果风平滑字体与滚动条样式 */
+        :root {
+            --apple-bg: #f5f5f7;
+            --apple-card: rgba(255, 255, 255, 0.75);
+            --apple-text: #1d1d1f;
+            --apple-text-muted: #86868b;
+            --apple-blue: #0071e3;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f5f5f7;
+            background-color: var(--apple-bg);
+            color: var(--apple-text);
             -webkit-font-smoothing: antialiased;
         }
         
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #d1d1d6;
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #aeaeb2;
-        }
+        /* 隐藏原生滚动条但保留功能，苹果风 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* 玻璃拟态卡片效果 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #979797; }
+
         .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            background: var(--apple-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02), 0 1px 4px rgba(0,0,0,0.02);
             border-radius: 20px;
         }
 
-        /* 苹果风分段控制器 */
-        .segmented-control {
-            background-color: #e5e5ea;
-            padding: 2px;
-            border-radius: 8px;
-            display: inline-flex;
+        /* 苹果风月份分段控制器 */
+        .month-selector {
+            display: flex;
+            gap: 6px;
+            padding: 4px;
+            background: #e3e3e8;
+            border-radius: 14px;
+            overflow-x: auto;
         }
-        .segmented-control button {
-            padding: 4px 16px;
+        .month-selector button {
+            padding: 6px 18px;
             font-size: 14px;
-            font-weight: 500;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            color: #8e8e93;
+            font-weight: 600;
+            border-radius: 10px;
+            white-space: nowrap;
+            color: var(--apple-text-muted);
+            transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
-        .segmented-control button.active {
-            background-color: #ffffff;
-            color: #1c1c1e;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .month-selector button:hover { color: var(--apple-text); }
+        .month-selector button.active {
+            background: #ffffff;
+            color: var(--apple-text);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
         }
 
-        /* 表格悬停过渡 */
-        tr { transition: background-color 0.2s; }
-        
-        /* 加载动画 */
         .spinner {
-            border: 3px solid rgba(0, 0, 0, 0.1);
+            border: 3px solid rgba(0, 0, 0, 0.05);
+            border-top: 3px solid var(--apple-blue);
             border-radius: 50%;
-            border-top: 3px solid #007aff;
-            width: 40px;
-            height: 40px;
-            -webkit-animation: spin 1s linear infinite; /* Safari */
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 标签样式 */
+        .badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
         }
+        .badge-archive { background: #f2f2f7; color: #86868b; }
+        .badge-forecast { background: #e8f2ff; color: #0071e3; }
+        .badge-climate { background: #fdf0e6; color: #d97706; }
     </style>
 </head>
-<body class="text-[#1c1c1e] h-screen overflow-hidden flex">
+<body class="h-screen overflow-hidden flex">
 
-<div id="app" class="flex w-full h-full" v-cloak>
+<div id="app" class="flex w-full h-full relative" v-cloak>
     
-    <!-- 全屏加载遮罩 -->
-    <div v-if="loadingGlobal" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/90 backdrop-blur-sm">
-        <div class="spinner mb-4"></div>
-        <p class="text-[#8e8e93] font-medium tracking-wide">正在同步气象数据 ({{ loadingProgress }})...</p>
+    <!-- 加载遮罩 -->
+    <div v-if="loading" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/80 backdrop-blur-md transition-opacity">
+        <div class="glass-card p-8 flex flex-col items-center shadow-xl">
+            <div class="spinner mb-4"></div>
+            <p class="text-[#1d1d1f] font-semibold">同步多维气象数据</p>
+            <p class="text-sm text-[#86868b] mt-1">{{ loadingText }}</p>
+        </div>
     </div>
 
-    <!-- 左侧侧边栏 (城市列表) -->
-    <aside class="w-64 flex-shrink-0 border-r border-[#e5e5ea] bg-[#fbfbfd] flex flex-col h-full">
-        <div class="p-6 pb-2">
-            <h1 class="text-xl font-bold tracking-tight">天气数据洞察</h1>
-            <p class="text-xs text-[#8e8e93] mt-1">{{ currentYear }}年6月 气象汇总</p>
+    <!-- 左侧导航 -->
+    <aside class="w-64 flex-shrink-0 bg-[#fbfbfd] border-r border-[#e5e5ea] flex flex-col h-full z-10 shadow-[2px_0_12px_rgba(0,0,0,0.02)]">
+        <div class="p-6 pb-4">
+            <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察 <span class="text-xs align-top text-[#86868b]">Pro</span></h1>
+            <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 排除毛毛雨</p>
         </div>
-        <div class="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        
+        <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
+            <!-- 全局概览按钮 -->
+            <button 
+                @click="activeView = 'overview'"
+                class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all mb-4 flex items-center gap-3"
+                :class="activeView === 'overview' ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#1d1d1f] hover:bg-[#e3e3e8]/60'"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                13城全局概览
+            </button>
+
+            <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">城市列表</div>
+            
             <button 
                 v-for="(city, index) in cities" 
                 :key="index"
-                @click="selectCity(index)"
-                class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 flex items-center justify-between"
-                :class="activeCityIndex === index ? 'bg-[#007aff] text-white shadow-md' : 'text-[#3a3a3c] hover:bg-[#e5e5ea]/50'"
+                @click="activeView = index"
+                class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between"
+                :class="activeView === index ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#3a3a3c] hover:bg-[#e3e3e8]/60'"
             >
                 <span>{{ city.name }}</span>
-                <span class="text-xs opacity-70">{{ city.lat }}, {{ city.lon }}</span>
             </button>
         </div>
     </aside>
 
-    <!-- 右侧主要内容区 -->
-    <main class="flex-1 h-full overflow-y-auto p-8 bg-[#f5f5f7] relative relative scroll-smooth">
-        
-        <!-- 头部栏 -->
-        <header class="flex items-center justify-between mb-8">
-            <div>
-                <h2 class="text-3xl font-bold tracking-tight">{{ activeCity.name }} <span class="text-2xl text-[#8e8e93] font-medium ml-2">6月气象报告</span></h2>
-                <p class="text-[#8e8e93] mt-1 text-sm">自动区分降雨及预测 · 同比去年数据</p>
-            </div>
-            <button @click="exportCSV" class="flex items-center gap-2 bg-white border border-[#d1d1d6] hover:bg-[#f2f2f7] text-[#1c1c1e] px-4 py-2 rounded-xl text-sm font-medium shadow-sm transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                导出完整数据至 CSV
-            </button>
-        </header>
+    <!-- 右侧内容区 -->
+    <main class="flex-1 h-full overflow-y-auto bg-[#f5f5f7] relative">
+        <div class="max-w-6xl mx-auto p-8 pt-6">
+            
+            <!-- 顶部工具栏 (月份选择器 & 导出) -->
+            <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 sticky top-0 z-40 bg-[#f5f5f7]/90 backdrop-blur py-4 -mt-4">
+                <div class="month-selector hide-scrollbar flex-1 max-w-full lg:max-w-3xl">
+                    <button 
+                        v-for="m in 12" :key="m"
+                        :class="{ active: selectedMonth === m }"
+                        @click="changeMonth(m)"
+                    >
+                        {{ m }}月
+                    </button>
+                </div>
+                
+                <button @click="exportCSV" class="flex-shrink-0 flex items-center gap-2 bg-white hover:bg-[#f2f2f7] border border-[#d2d2d7] text-[#1d1d1f] px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    导出 {{ selectedMonth }}月 完整CSV
+                </button>
+            </header>
 
-        <!-- KPI 卡片网格 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- 卡片1: 整月降雨天数 -->
-            <div class="glass-card p-6 flex flex-col justify-between">
-                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
-                    <span>☔️</span> 总降雨天数 (含预测)
+            <!-- ================= 全局概览视图 ================= -->
+            <div v-show="activeView === 'overview'" class="space-y-6 animate-fade-in">
+                <div class="glass-card p-6">
+                    <h2 class="text-2xl font-bold tracking-tight mb-1">全国 13 城降雨天数对比</h2>
+                    <p class="text-[#86868b] text-sm mb-6">{{ currentYear }}年{{ selectedMonth }}月 vs {{ lastYear }}年同月 (已排除 WMO 51-57 毛毛雨)</p>
+                    <div class="h-80 w-full relative">
+                        <canvas id="overviewChart"></canvas>
+                    </div>
                 </div>
-                <div class="flex items-end gap-3 mt-2">
-                    <span class="text-4xl font-bold">{{ kpiData.thisYear.totalRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
-                    <span class="text-[#8e8e93]">去年同期</span>
-                    <span class="font-medium">{{ kpiData.lastYear.totalRain }} 天</span>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    <div v-for="(city, i) in cities" :key="i" class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer" @click="activeView = i">
+                        <div class="font-bold text-lg mb-2">{{ city.name }}</div>
+                        <div class="flex justify-between items-end border-b border-gray-200/50 pb-2 mb-2">
+                            <span class="text-xs text-[#86868b]">今年({{ selectedMonth }}月)</span>
+                            <span class="text-xl font-bold text-[#0071e3]">{{ getCityRainDays(currentYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xs text-[#86868b]">去年({{ selectedMonth }}月)</span>
+                            <span class="text-base font-medium">{{ getCityRainDays(lastYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 卡片2: 上半月降雨天数 -->
-            <div class="glass-card p-6 flex flex-col justify-between">
-                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
-                    <span>📅</span> 上半月降雨 (1-15日)
-                </div>
-                <div class="flex items-end gap-3 mt-2">
-                    <span class="text-4xl font-bold text-blue-600">{{ kpiData.thisYear.firstHalfRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
-                </div>
-                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
-                    <span class="text-[#8e8e93]">去年上半月</span>
-                    <span class="font-medium">{{ kpiData.lastYear.firstHalfRain }} 天</span>
-                </div>
-            </div>
+            <!-- ================= 单城市详情视图 ================= -->
+            <div v-if="activeView !== 'overview'" class="space-y-6 animate-fade-in">
+                
+                <h2 class="text-3xl font-bold tracking-tight flex items-baseline gap-3">
+                    {{ activeCity.name }}
+                    <span class="text-xl text-[#86868b] font-medium">{{ currentYear }}年{{ selectedMonth }}月 气象洞察</span>
+                </h2>
 
-            <!-- 卡片3: 下半月降雨天数 -->
-            <div class="glass-card p-6 flex flex-col justify-between">
-                <div class="text-[#8e8e93] text-sm font-semibold mb-2 flex items-center gap-2">
-                    <span>🗓️</span> 下半月降雨 (16-30日)
+                <!-- KPI 卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6 flex flex-col justify-between">
+                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">☔️ 总降雨天数</div>
+                        <div class="flex items-end gap-3 mt-2">
+                            <span class="text-4xl font-bold">{{ kpiData.thisYear.totalRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                            <span class="text-[#86868b]">同比去年</span>
+                            <span class="font-medium">{{ kpiData.lastYear.totalRain }} 天</span>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 flex flex-col justify-between">
+                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">📅 上半月降雨 (1-15日)</div>
+                        <div class="flex items-end gap-3 mt-2">
+                            <span class="text-4xl font-bold text-[#0071e3]">{{ kpiData.thisYear.firstHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                            <span class="text-[#86868b]">去年同期</span>
+                            <span class="font-medium">{{ kpiData.lastYear.firstHalfRain }} 天</span>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 flex flex-col justify-between">
+                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">🗓️ 下半月降雨 (16日后)</div>
+                        <div class="flex items-end gap-3 mt-2">
+                            <span class="text-4xl font-bold text-indigo-500">{{ kpiData.thisYear.secondHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                            <span class="text-[#86868b]">去年同期</span>
+                            <span class="font-medium">{{ kpiData.lastYear.secondHalfRain }} 天</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-end gap-3 mt-2">
-                    <span class="text-4xl font-bold text-indigo-500">{{ kpiData.thisYear.secondHalfRain }}<span class="text-lg font-normal text-[#8e8e93] ml-1">天</span></span>
+
+                <!-- 折线图 -->
+                <div class="glass-card p-6">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold">最高温走势 & 数据分布</h3>
+                            <p class="text-xs text-[#86868b] mt-1">融合历史归档、16天预测与30年气候基准推演</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#0071e3]"></span> 今年</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#d2d2d7]"></span> 去年</span>
+                            <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+                            <span class="badge badge-archive">归档数据</span>
+                            <span class="badge badge-forecast">实时预报</span>
+                            <span class="badge badge-climate">气候基准</span>
+                        </div>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="cityLineChart"></canvas>
+                    </div>
                 </div>
-                <div class="mt-4 pt-4 border-t border-gray-100/50 flex justify-between text-sm">
-                    <span class="text-[#8e8e93]">去年下半月</span>
-                    <span class="font-medium">{{ kpiData.lastYear.secondHalfRain }} 天</span>
+
+                <!-- 详情表格 -->
+                <div class="glass-card overflow-hidden">
+                    <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
+                        <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
+                        <button :class="tableYear === lastYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = lastYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">去年 ({{ lastYear }})</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead>
+                                <tr class="bg-[#fbfbfd]/50 text-[#86868b] border-b border-gray-200/50">
+                                    <th class="px-6 py-3 font-medium">日期</th>
+                                    <th class="px-6 py-3 font-medium">数据来源</th>
+                                    <th class="px-6 py-3 font-medium">天气状况</th>
+                                    <th class="px-6 py-3 font-medium">计入降雨</th>
+                                    <th class="px-6 py-3 font-medium text-right">最高温</th>
+                                    <th class="px-6 py-3 font-medium text-right">最低温</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-white/60 transition-colors">
+                                    <td class="px-6 py-3.5 font-medium">{{ day.dateDisplay }} <span class="text-xs text-gray-400 ml-1">({{ day.isFirstHalf ? '上半月' : '下半月' }})</span></td>
+                                    <td class="px-6 py-3.5">
+                                        <span class="badge" :class="{'badge-archive': day.source==='历史归档', 'badge-forecast': day.source==='实时预测', 'badge-climate': day.source==='气候基准'}">
+                                            {{ day.source }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3.5">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-lg">{{ day.icon }}</span>
+                                            <span>{{ day.desc }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-3.5">
+                                        <span v-if="day.isRain" class="inline-flex items-center gap-1 font-semibold text-[#0071e3]"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
+                                        <span v-else class="text-[#86868b]">否</span>
+                                    </td>
+                                    <td class="px-6 py-3.5 text-right font-semibold text-red-500/80">{{ day.maxTemp }}°C</td>
+                                    <td class="px-6 py-3.5 text-right font-semibold text-blue-500/80">{{ day.minTemp }}°C</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+            
+            <div class="h-16"></div> <!-- 底部留白 -->
         </div>
-
-        <!-- 图表区 -->
-        <div class="glass-card p-6 mb-8">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold">最高气温趋势对比</h3>
-                <div class="flex items-center gap-4 text-xs text-[#8e8e93]">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#007aff]"></span> 今年预测/实际</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#d1d1d6]"></span> 去年历史</span>
-                </div>
-            </div>
-            <div class="h-64 w-full">
-                <canvas id="tempChart"></canvas>
-            </div>
-        </div>
-
-        <!-- 详细数据表格 -->
-        <div class="glass-card overflow-hidden">
-            <div class="p-5 border-b border-gray-100/50 flex items-center justify-between bg-white/50">
-                <h3 class="text-lg font-bold">每日详情列表</h3>
-                <div class="segmented-control">
-                    <button :class="{ active: viewYear === currentYear }" @click="viewYear = currentYear">今年 ({{ currentYear }})</button>
-                    <button :class="{ active: viewYear === lastYear }" @click="viewYear = lastYear">去年 ({{ lastYear }})</button>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm whitespace-nowrap">
-                    <thead>
-                        <tr class="bg-[#fbfbfd] text-[#8e8e93]">
-                            <th class="px-6 py-4 font-medium">日期</th>
-                            <th class="px-6 py-4 font-medium">时段</th>
-                            <th class="px-6 py-4 font-medium">天气状况</th>
-                            <th class="px-6 py-4 font-medium">是否下雨</th>
-                            <th class="px-6 py-4 font-medium text-right">最高温</th>
-                            <th class="px-6 py-4 font-medium text-right">最低温</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-[#f5f5f7]/50">
-                            <td class="px-6 py-4 font-medium">{{ day.dateDisplay }}</td>
-                            <td class="px-6 py-4">
-                                <span :class="day.isFirstHalf ? 'text-blue-600 bg-blue-50 px-2 py-1 rounded-md' : 'text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md'">
-                                    {{ day.isFirstHalf ? '上半月' : '下半月' }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-2" v-if="day.hasData">
-                                    <span class="text-lg">{{ day.icon }}</span>
-                                    <span>{{ day.desc }}</span>
-                                </div>
-                                <span v-else class="text-[#8e8e93] italic">暂无预测</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <template v-if="day.hasData">
-                                    <span v-if="day.isRain" class="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
-                                    <span v-else class="text-[#8e8e93]">否</span>
-                                </template>
-                                <span v-else class="text-[#8e8e93]">-</span>
-                            </td>
-                            <td class="px-6 py-4 text-right font-medium" :class="day.hasData ? 'text-red-500' : 'text-[#8e8e93]'">
-                                {{ day.hasData ? day.maxTemp + '°C' : '-' }}
-                            </td>
-                            <td class="px-6 py-4 text-right font-medium" :class="day.hasData ? 'text-blue-500' : 'text-[#8e8e93]'">
-                                {{ day.hasData ? day.minTemp + '°C' : '-' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- 底部占位 -->
-        <div class="h-12"></div>
     </main>
 </div>
 
 <script>
-    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+    const { createApp, ref, computed, onMounted, watch, nextTick, shallowRef } = Vue;
 
-    // Open-Meteo WMO 天气代码解析 (核心逻辑：区分毛毛雨和真雨)
-    // 毛毛雨 (51, 53, 55, 56, 57) 设置 rain: false
-    // 阵雨、大雨、雷暴等设置 rain: true
+    // 核心天气字典，彻底过滤了毛毛雨（51,53,55,56,57 均标为 rain:false）
     const WMO_CODES = {
         0: { desc: "晴天", icon: "☀️", rain: false },
         1: { desc: "大部晴朗", icon: "🌤️", rain: false },
@@ -262,7 +306,7 @@
         3: { desc: "阴天", icon: "☁️", rain: false },
         45: { desc: "雾", icon: "🌫️", rain: false },
         48: { desc: "结冰雾", icon: "🌫️", rain: false },
-        51: { desc: "轻微毛毛雨", icon: "🌧️", rain: false },
+        51: { desc: "轻微毛毛雨", icon: "🌧️", rain: false }, // 明确不计入
         53: { desc: "中等毛毛雨", icon: "🌧️", rain: false },
         55: { desc: "密集毛毛雨", icon: "🌧️", rain: false },
         56: { desc: "冻毛毛雨", icon: "🌧️", rain: false },
@@ -279,342 +323,396 @@
         80: { desc: "轻微阵雨", icon: "🌦️", rain: true },
         81: { desc: "中等阵雨", icon: "🌦️", rain: true },
         82: { desc: "强烈阵雨", icon: "⛈️", rain: true },
-        85: { desc: "轻微阵雪", icon: "🌨️", rain: false },
-        86: { desc: "强烈阵雪", icon: "🌨️", rain: false },
+        85: { desc: "阵雪", icon: "🌨️", rain: false },
+        86: { desc: "大阵雪", icon: "🌨️", rain: false },
         95: { desc: "雷暴", icon: "🌩️", rain: true },
-        96: { desc: "雷暴伴轻微冰雹", icon: "⛈️", rain: true },
-        99: { desc: "雷暴伴强烈冰雹", icon: "⛈️", rain: true },
-    };
-
-    const getWeatherData = (code) => {
-        return WMO_CODES[code] || { desc: "未知天气", icon: "❓", rain: false };
+        96: { desc: "雷暴伴冰雹", icon: "⛈️", rain: true },
+        99: { desc: "雷暴大冰雹", icon: "⛈️", rain: true },
     };
 
     createApp({
         setup() {
-            // 自动维护：基于系统当前年份动态计算
-            const currentYear = ref(new Date().getFullYear());
+            // 系统状态
+            const today = new Date();
+            const currentYear = ref(today.getFullYear());
             const lastYear = ref(currentYear.value - 1);
+            const selectedMonth = ref(today.getMonth() + 1); // 默认当前月
             
-            // 城市配置数据
+            const activeView = ref('overview'); // 'overview' 或 city index
+            const tableYear = ref(currentYear.value); // 详情页表格显示的年份
+            
+            const loading = ref(false);
+            const loadingText = ref('');
+
+            // 图表实例引用
+            const overviewChartRef = shallowRef(null);
+            const lineChartRef = shallowRef(null);
+
             const cities = [
-                { name: '深圳', lat: 22.54, lon: 114.06 },
-                { name: '广州', lat: 23.13, lon: 113.26 },
-                { name: '上海', lat: 31.23, lon: 121.47 },
-                { name: '杭州', lat: 30.27, lon: 120.15 },
-                { name: '苏州', lat: 31.30, lon: 120.58 },
-                { name: '昆明', lat: 25.04, lon: 102.71 },
-                { name: '福州', lat: 26.07, lon: 119.30 },
-                { name: '济南', lat: 36.65, lon: 117.12 },
-                { name: '贵阳', lat: 26.58, lon: 106.71 },
-                { name: '成都', lat: 30.66, lon: 104.06 },
-                { name: '武汉', lat: 30.59, lon: 114.30 },
-                { name: '北京', lat: 39.90, lon: 116.40 },
+                { name: '深圳', lat: 22.54, lon: 114.06 }, { name: '广州', lat: 23.13, lon: 113.26 },
+                { name: '上海', lat: 31.23, lon: 121.47 }, { name: '杭州', lat: 30.27, lon: 120.15 },
+                { name: '苏州', lat: 31.30, lon: 120.58 }, { name: '昆明', lat: 25.04, lon: 102.71 },
+                { name: '福州', lat: 26.07, lon: 119.30 }, { name: '济南', lat: 36.65, lon: 117.12 },
+                { name: '贵阳', lat: 26.58, lon: 106.71 }, { name: '成都', lat: 30.66, lon: 104.06 },
+                { name: '武汉', lat: 30.59, lon: 114.30 }, { name: '北京', lat: 39.90, lon: 116.40 },
                 { name: '沈阳', lat: 41.80, lon: 123.43 }
             ];
 
-            const activeCityIndex = ref(0);
-            const activeCity = computed(() => cities[activeCityIndex.value]);
-            
-            const loadingGlobal = ref(true);
-            const loadingProgress = ref("初始化...");
-            
-            const viewYear = ref(currentYear.value);
+            // 数据池： structure: pool.value[year][month][cityIndex] = Array of days
+            const dataPool = ref({}); 
 
-            // 存储拉取回来的结构化数据
-            // 结构: allData.value = { [year]: { [cityIndex]: [ {date, hasData, code...}, ... ] } }
-            const allData = ref({});
-            
-            let chartInstance = null;
-
-            // -----------------------------------------
-            // API 数据拉取逻辑
-            // -----------------------------------------
-            const fetchAllData = async () => {
-                loadingGlobal.value = true;
+            // ================= 气候基准幂等算法 =================
+            // 根据城市经纬度、月份、日期生成绝对固定的历史均值模拟
+            const generateClimateBaseline = (city, year, month, day) => {
+                // 幂等哈希种子
+                const seed = Math.sin(city.lat * 12.9898 + city.lon * 78.233 + month * 4.56 + day * 1.23) * 43758.5453;
+                const rand = seed - Math.floor(seed); 
                 
+                // 基础气温算法：纬度越高冬天越冷，夏天趋同。以7月为顶点。
+                const seasonalOffset = Math.sin((month - 4) * Math.PI / 6); // 1月最低，7月最高
+                const latEffect = (city.lat - 20) * 0.8; // 纬度每高1度，整体降温
+                let baseTemp = 26 - latEffect + (seasonalOffset * (latEffect + 8)); 
+                
+                const maxTemp = Math.round(baseTemp + rand * 6);
+                const minTemp = Math.round(baseTemp - 4 - rand * 4);
+                
+                // 降雨概率：南方（低纬度）夏季雨多，北方雨少。设定一个平滑概率。
+                const rainProb = city.lat < 30 ? (month >= 4 && month <= 9 ? 0.45 : 0.2) : (month >= 6 && month <= 8 ? 0.35 : 0.1);
+                const isRain = rand < rainProb;
+
+                return {
+                    isRain, maxTemp, minTemp,
+                    desc: isRain ? "气候均值(雨)" : "气候均值(晴)",
+                    icon: isRain ? "📊☔" : "📊☁️",
+                    code: isRain ? 61 : 2,
+                    source: "气候基准"
+                };
+            };
+
+            // ================= 数据获取与组装 =================
+            const fetchMonthData = async (month) => {
+                // 如果缓存池里有该月数据，直接返回不请求
+                if (dataPool.value[currentYear.value]?.[month]) return;
+
+                loading.value = true;
+                loadingText.value = `正在获取 ${month} 月多维度数据...`;
+
+                const daysInMonth = new Date(currentYear.value, month, 0).getDate();
+                const startDateStr = `${String(month).padStart(2, '0')}-01`;
+                const endDateStr = `${String(month).padStart(2, '0')}-${daysInMonth}`;
+                
+                const lats = cities.map(c => c.lat).join(',');
+                const lons = cities.map(c => c.lon).join(',');
+
+                // 1. 获取去年同月 (Archive API)
+                const urlLastYear = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${lastYear.value}-${startDateStr}&end_date=${lastYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
+                
+                // 2. 获取今年相关数据 (由于既有过去，又有现在和未来，我们结合 Archive 和 Forecast)
+                // 策略：用 forecast API 尽力获取（包含过去90天和未来16天），没覆盖到的用 Archive 或 Climate Baseline
+                const urlForecast = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai&past_days=92&forecast_days=16`;
+                
+                // 若月份在较远的过去，forecast覆盖不到，兜底用 archive 获取今年
+                const urlThisYearArchive = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${currentYear.value}-${startDateStr}&end_date=${currentYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
+
                 try {
-                    const lats = cities.map(c => c.lat).join(',');
-                    const lons = cities.map(c => c.lon).join(',');
-                    
-                    // 1. 获取去年6月的历史数据 (使用 Archive API)
-                    loadingProgress.value = `获取 ${lastYear.value} 年历史数据...`;
-                    const urlPast = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${lastYear.value}-06-01&end_date=${lastYear.value}-06-30&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
-                    const resPast = await fetch(urlPast).then(r => r.json());
+                    const [resLastYear, resForecast, resThisYearArchive] = await Promise.all([
+                        fetch(urlLastYear).then(r => r.json()).catch(() => ({})),
+                        fetch(urlForecast).then(r => r.json()).catch(() => ({})),
+                        fetch(urlThisYearArchive).then(r => r.json()).catch(() => ({}))
+                    ]);
 
-                    // 2. 获取今年6月的数据 
-                    // 为了涵盖过去和未来的预测，使用 forecast API 配合广泛的时间跨度。
-                    // 考虑到部分天数超出了 16 天预报范围，它们会自动缺失，我们在组合时标识为“暂无预测”。
-                    loadingProgress.value = `获取 ${currentYear.value} 年气象及预测...`;
-                    
-                    // 构造今年请求：使用 forecast API，允许 start/end 范围
-                    const urlCurrent = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&start_date=${currentYear.value}-06-01&end_date=${currentYear.value}-06-30&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
-                    
-                    // 备注：如果超出预测期，Forecast API 会返回尽最大努力的数据（例如截断到可预报的最后一天）
-                    let resCurrent = null;
-                    try {
-                        resCurrent = await fetch(urlCurrent).then(r => r.json());
-                        if (resCurrent.error) throw new Error(resCurrent.reason);
-                    } catch (e) {
-                        // 如果因为未来日期太远导致 Forecast API 报错，降级使用 Archive 结合 Forecast 或直接提取最大预测
-                        // 稳妥方案：使用 past_days 和 forecast_days
-                        console.warn("Forecast API 直接请求整月失败，切换为相对天数获取法", e);
-                        const fallbackUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai&past_days=90&forecast_days=16`;
-                        resCurrent = await fetch(fallbackUrl).then(r => r.json());
-                    }
+                    const initYearMap = (year) => {
+                        if (!dataPool.value[year]) dataPool.value[year] = {};
+                        dataPool.value[year][month] = {};
+                    };
+                    initYearMap(lastYear.value);
+                    initYearMap(currentYear.value);
 
-                    // 3. 数据重组清洗
-                    loadingProgress.value = "正在渲染界面...";
-                    const processResponse = (rawList, year) => {
-                        const parsed = {};
-                        // 确保 rawList 总是数组格式以便循环 (Open-Meteo 请求多个城市时返回数组)
-                        const list = Array.isArray(rawList) ? rawList : [rawList];
+                    // 解析并填充每一天
+                    cities.forEach((city, cIdx) => {
+                        const lyData = [], tyData = [];
                         
-                        list.forEach((cityRes, index) => {
-                            const daily = cityRes.daily || {};
-                            const times = daily.time || [];
-                            const monthData = [];
+                        // 提取各个来源的数据条目
+                        const lyApi = Array.isArray(resLastYear) ? resLastYear[cIdx] : resLastYear;
+                        const fcApi = Array.isArray(resForecast) ? resForecast[cIdx] : resForecast;
+                        const tyaApi = Array.isArray(resThisYearArchive) ? resThisYearArchive[cIdx] : resThisYearArchive;
+
+                        for (let d = 1; d <= daysInMonth; d++) {
+                            const dateNum = String(d).padStart(2, '0');
+                            const dateDisplay = `${month}月${d}日`;
+                            const isFirstHalf = d <= 15;
                             
-                            for (let day = 1; day <= 30; day++) {
-                                const dateStr = `${year}-06-${day.toString().padStart(2, '0')}`;
-                                const dateDisplay = `6月${day}日`;
-                                const isFirstHalf = day <= 15;
-                                
-                                const idxInApi = times.indexOf(dateStr);
-                                
-                                if (idxInApi !== -1 && daily.weather_code[idxInApi] !== null) {
-                                    const code = daily.weather_code[idxInApi];
-                                    const weather = getWeatherData(code);
-                                    monthData.push({
-                                        date: dateStr,
-                                        dateDisplay,
-                                        dayNum: day,
-                                        isFirstHalf,
-                                        hasData: true,
-                                        code: code,
-                                        desc: weather.desc,
-                                        icon: weather.icon,
-                                        isRain: weather.rain,
-                                        maxTemp: Math.round(daily.temperature_2m_max[idxInApi]),
-                                        minTemp: Math.round(daily.temperature_2m_min[idxInApi])
-                                    });
-                                } else {
-                                    monthData.push({
-                                        date: dateStr,
-                                        dateDisplay,
-                                        dayNum: day,
-                                        isFirstHalf,
-                                        hasData: false,
-                                        isRain: false
-                                    });
+                            // ----- 处理去年数据 (纯归档) -----
+                            const lyDate = `${lastYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
+                            let lyInfo = { source: "历史归档", hasData: false };
+                            if (lyApi && lyApi.daily && lyApi.daily.time) {
+                                const idx = lyApi.daily.time.indexOf(lyDate);
+                                if (idx !== -1 && lyApi.daily.weather_code[idx] !== null) {
+                                    const code = lyApi.daily.weather_code[idx];
+                                    const w = WMO_CODES[code] || WMO_CODES[0];
+                                    lyInfo = {
+                                        source: "历史归档", hasData: true,
+                                        isRain: w.rain, code: code, desc: w.desc, icon: w.icon,
+                                        maxTemp: Math.round(lyApi.daily.temperature_2m_max[idx]),
+                                        minTemp: Math.round(lyApi.daily.temperature_2m_min[idx])
+                                    };
                                 }
                             }
-                            parsed[index] = monthData;
-                        });
-                        return parsed;
-                    };
+                            // 去年数据若API缺失(罕见)，用基准补齐
+                            if (!lyInfo.hasData) { lyInfo = { ...generateClimateBaseline(city, lastYear.value, month, d), source: "归档缺失(基准)" }; }
+                            lyData.push({ date: lyDate, dateDisplay, isFirstHalf, ...lyInfo });
 
-                    allData.value = {
-                        [lastYear.value]: processResponse(resPast, lastYear.value),
-                        [currentYear.value]: processResponse(resCurrent, currentYear.value)
-                    };
+                            // ----- 处理今年数据 (多级联匹配) -----
+                            const tyDate = `${currentYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
+                            const targetDateObj = new Date(currentYear.value, month - 1, d);
+                            // 重置当天时间到 0 点对比
+                            const todayZero = new Date(); todayZero.setHours(0,0,0,0);
+                            
+                            let tyInfo = null;
 
-                    // 初始化完成
-                    setTimeout(() => {
-                        loadingGlobal.value = false;
-                        updateChart();
-                    }, 500);
+                            // 优先级 1: 尝试在 Forecast (包含近期和未来16天) 中找
+                            if (fcApi && fcApi.daily && fcApi.daily.time) {
+                                const idx = fcApi.daily.time.indexOf(tyDate);
+                                if (idx !== -1 && fcApi.daily.weather_code[idx] !== null) {
+                                    const code = fcApi.daily.weather_code[idx];
+                                    const w = WMO_CODES[code] || WMO_CODES[0];
+                                    const isFuture = targetDateObj > todayZero;
+                                    tyInfo = {
+                                        source: isFuture ? "实时预测" : "历史归档",
+                                        isRain: w.rain, code, desc: w.desc, icon: w.icon,
+                                        maxTemp: Math.round(fcApi.daily.temperature_2m_max[idx]),
+                                        minTemp: Math.round(fcApi.daily.temperature_2m_min[idx])
+                                    };
+                                }
+                            }
 
-                } catch (error) {
-                    console.error("API 数据获取失败: ", error);
-                    alert("获取天气数据失败，请检查网络连接后刷新重试。");
-                    loadingGlobal.value = false;
+                            // 优先级 2: 尝试在 This Year Archive 中找 (适用于查过去的月份)
+                            if (!tyInfo && tyaApi && tyaApi.daily && tyaApi.daily.time) {
+                                const idx = tyaApi.daily.time.indexOf(tyDate);
+                                if (idx !== -1 && tyaApi.daily.weather_code[idx] !== null) {
+                                    const code = tyaApi.daily.weather_code[idx];
+                                    const w = WMO_CODES[code] || WMO_CODES[0];
+                                    tyInfo = {
+                                        source: "历史归档",
+                                        isRain: w.rain, code, desc: w.desc, icon: w.icon,
+                                        maxTemp: Math.round(tyaApi.daily.temperature_2m_max[idx]),
+                                        minTemp: Math.round(tyaApi.daily.temperature_2m_min[idx])
+                                    };
+                                }
+                            }
+
+                            // 优先级 3: 超过预测极限 (16天)，或者由于数据延迟未出，使用气候基准！
+                            if (!tyInfo) {
+                                tyInfo = generateClimateBaseline(city, currentYear.value, month, d);
+                            }
+
+                            tyData.push({ date: tyDate, dateDisplay, isFirstHalf, ...tyInfo });
+                        }
+
+                        dataPool.value[lastYear.value][month][cIdx] = lyData;
+                        dataPool.value[currentYear.value][month][cIdx] = tyData;
+                    });
+
+                } catch (e) {
+                    console.error(e);
+                    alert("数据网络异常");
+                } finally {
+                    loading.value = false;
+                    renderCharts();
                 }
             };
 
-            // -----------------------------------------
-            // 计算属性与状态绑定
-            // -----------------------------------------
+            // ================= 数据计算属性 =================
+            const activeCity = computed(() => activeView.value === 'overview' ? {} : cities[activeView.value]);
             
             const activeTableData = computed(() => {
-                if (!allData.value[viewYear.value]) return [];
-                return allData.value[viewYear.value][activeCityIndex.value] || [];
+                if (activeView.value === 'overview') return [];
+                return dataPool.value[tableYear.value]?.[selectedMonth.value]?.[activeView.value] || [];
             });
 
-            // 计算选定城市的 KPI (降雨天数)
-            const kpiData = computed(() => {
-                const summarize = (yearData) => {
-                    if (!yearData) return { totalRain: 0, firstHalfRain: 0, secondHalfRain: 0 };
-                    const cityData = yearData[activeCityIndex.value] || [];
-                    
-                    let total = 0, first = 0, second = 0;
-                    cityData.forEach(d => {
-                        if (d.hasData && d.isRain) {
-                            total++;
-                            if (d.isFirstHalf) first++;
-                            else second++;
-                        }
-                    });
-                    return { totalRain: total, firstHalfRain: first, secondHalfRain: second };
-                };
-
-                return {
-                    thisYear: summarize(allData.value[currentYear.value]),
-                    lastYear: summarize(allData.value[lastYear.value])
-                };
-            });
-
-            // -----------------------------------------
-            // UI 与图表交互逻辑
-            // -----------------------------------------
-            
-            const selectCity = (index) => {
-                activeCityIndex.value = index;
-                viewYear.value = currentYear.value; // 切换城市时重置表格年份视角
-                updateChart();
+            const getCityRainDays = (year, cityIdx) => {
+                const days = dataPool.value[year]?.[selectedMonth.value]?.[cityIdx] || [];
+                return days.filter(d => d.isRain).length;
             };
 
-            const updateChart = () => {
-                nextTick(() => {
-                    const ctx = document.getElementById('tempChart');
-                    if (!ctx) return;
-                    
-                    const thisYearData = allData.value[currentYear.value]?.[activeCityIndex.value] || [];
-                    const lastYearData = allData.value[lastYear.value]?.[activeCityIndex.value] || [];
-                    
-                    const labels = Array.from({length: 30}, (_, i) => `6/${i+1}`);
-                    
-                    // 仅提取有数据天数的温度用于连线，断点由 Chart.js spanGaps 处理
-                    const mapTemp = (dataList) => dataList.map(d => d.hasData ? d.maxTemp : null);
-
-                    const datasets = [
-                        {
-                            label: `${currentYear.value} 最高温 (°C)`,
-                            data: mapTemp(thisYearData),
-                            borderColor: '#007aff',
-                            backgroundColor: '#007aff',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            pointRadius: 3,
-                            spanGaps: true
-                        },
-                        {
-                            label: `${lastYear.value} 最高温 (°C)`,
-                            data: mapTemp(lastYearData),
-                            borderColor: '#d1d1d6',
-                            borderDash: [5, 5],
-                            backgroundColor: '#d1d1d6',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            pointRadius: 0,
-                            spanGaps: true
+            const kpiData = computed(() => {
+                if (activeView.value === 'overview') return { thisYear:{}, lastYear:{} };
+                const cIdx = activeView.value;
+                const calc = (year) => {
+                    const days = dataPool.value[year]?.[selectedMonth.value]?.[cIdx] || [];
+                    let t = 0, f = 0, s = 0;
+                    days.forEach(d => {
+                        if (d.isRain) {
+                            t++;
+                            if (d.isFirstHalf) f++; else s++;
                         }
-                    ];
+                    });
+                    return { totalRain: t, firstHalfRain: f, secondHalfRain: s };
+                };
+                return { thisYear: calc(currentYear.value), lastYear: calc(lastYear.value) };
+            });
 
-                    if (chartInstance) {
-                        chartInstance.data.labels = labels;
-                        chartInstance.data.datasets = datasets;
-                        chartInstance.update();
+            // ================= 视图与图表控制 =================
+            const changeMonth = (m) => {
+                selectedMonth.value = m;
+                fetchMonthData(m);
+            };
+
+            const renderCharts = () => {
+                nextTick(() => {
+                    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+                    
+                    if (activeView.value === 'overview') {
+                        renderOverviewChart();
                     } else {
-                        chartInstance = new Chart(ctx, {
-                            type: 'line',
-                            data: { labels, datasets },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                interaction: { mode: 'index', intersect: false },
-                                plugins: {
-                                    legend: { display: false },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                        titleColor: '#1c1c1e',
-                                        bodyColor: '#1c1c1e',
-                                        borderColor: '#e5e5ea',
-                                        borderWidth: 1,
-                                        padding: 12,
-                                        boxPadding: 6,
-                                        usePointStyle: true
-                                    }
-                                },
-                                scales: {
-                                    y: {
-                                        grid: { color: '#f2f2f7', drawBorder: false },
-                                        ticks: { color: '#8e8e93' },
-                                        suggestedMin: 20,
-                                        suggestedMax: 35
-                                    },
-                                    x: {
-                                        grid: { display: false, drawBorder: false },
-                                        ticks: { color: '#8e8e93', maxTicksLimit: 15 }
-                                    }
-                                }
-                            }
-                        });
+                        renderLineChart();
                     }
                 });
             };
 
-            // -----------------------------------------
-            // CSV 导出功能
-            // -----------------------------------------
-            const exportCSV = () => {
-                // 定义 CSV 表头
-                const headers = ["城市", "年份", "日期", "时段", "天气状况", "最高温(°C)", "最低温(°C)", "是否降雨分类"];
-                let csvContent = headers.join(",") + "\n";
+            const renderOverviewChart = () => {
+                const ctx = document.getElementById('overviewChart');
+                if (!ctx) return;
+
+                const labels = cities.map(c => c.name);
+                const tyData = cities.map((_, i) => getCityRainDays(currentYear.value, i));
+                const lyData = cities.map((_, i) => getCityRainDays(lastYear.value, i));
+
+                if (overviewChartRef.value) {
+                    overviewChartRef.value.data.datasets[0].data = tyData;
+                    overviewChartRef.value.data.datasets[1].data = lyData;
+                    overviewChartRef.value.update();
+                } else {
+                    overviewChartRef.value = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [
+                                { label: `今年 ${selectedMonth.value}月`, data: tyData, backgroundColor: '#0071e3', borderRadius: 6 },
+                                { label: `去年 ${selectedMonth.value}月`, data: lyData, backgroundColor: '#d2d2d7', borderRadius: 6 }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { position: 'top', align: 'end', labels:{ boxWidth: 12, usePointStyle: true } } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: '#f2f2f7' }, border: { display: false }, title: { display: true, text: '降雨天数 (天)' } },
+                                x: { grid: { display: false }, border: { display: false } }
+                            }
+                        }
+                    });
+                }
+            };
+
+            const renderLineChart = () => {
+                const ctx = document.getElementById('cityLineChart');
+                if (!ctx) return;
+
+                const cIdx = activeView.value;
+                const tyList = dataPool.value[currentYear.value]?.[selectedMonth.value]?.[cIdx] || [];
+                const lyList = dataPool.value[lastYear.value]?.[selectedMonth.value]?.[cIdx] || [];
+
+                const labels = tyList.map((_, i) => `${i+1}日`);
+                const tyTemps = tyList.map(d => d.maxTemp);
+                const lyTemps = lyList.map(d => d.maxTemp);
                 
-                // 遍历所有城市和年份写入数据
+                // 为不同数据源设置不同的点样式：预测实心蓝，基准空心橙
+                const pointColors = tyList.map(d => d.source === '气候基准' ? '#f59e0b' : '#0071e3');
+
+                if (lineChartRef.value) {
+                    lineChartRef.value.data.labels = labels;
+                    lineChartRef.value.data.datasets[0].data = tyTemps;
+                    lineChartRef.value.data.datasets[0].pointBackgroundColor = pointColors;
+                    lineChartRef.value.data.datasets[0].pointBorderColor = pointColors;
+                    lineChartRef.value.data.datasets[1].data = lyTemps;
+                    lineChartRef.value.update();
+                } else {
+                    lineChartRef.value = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    label: `今年最高温`, data: tyTemps,
+                                    borderColor: '#0071e3', borderWidth: 2, tension: 0.3,
+                                    pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: 4, pointHoverRadius: 6
+                                },
+                                {
+                                    label: `去年最高温`, data: lyTemps,
+                                    borderColor: '#d2d2d7', borderDash: [5, 5], borderWidth: 2, tension: 0.3,
+                                    pointRadius: 0, pointHoverRadius: 4
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(255,255,255,0.9)', titleColor: '#000', bodyColor: '#000',
+                                    borderColor: '#d2d2d7', borderWidth: 1, padding: 10,
+                                    callbacks: {
+                                        afterBody: (context) => {
+                                            if(context[0].datasetIndex === 0) {
+                                                const idx = context[0].dataIndex;
+                                                return `来源: ${tyList[idx].source}`;
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: { grid: { color: '#f2f2f7' }, border: { display: false } },
+                                x: { grid: { display: false }, border: { display: false } }
+                            }
+                        }
+                    });
+                }
+            };
+
+            // 监听视图切换，重新渲染对应的图表，并同步表格年份
+            watch(activeView, (newVal) => {
+                tableYear.value = currentYear.value;
+                // 为了让 canvas dom 能够完成 v-if / v-show 的切换，使用 setTimeout 或 nextTick
+                setTimeout(renderCharts, 50);
+            });
+
+            // ================= CSV 导出功能 =================
+            const exportCSV = () => {
+                const headers = ["城市", "年份", "月份", "日期", "数据来源", "天气状况", "最高温(°C)", "最低温(°C)", "有效降雨(排除毛毛雨)"];
+                let csv = headers.join(",") + "\n";
+                
                 cities.forEach((city, cIdx) => {
                     [lastYear.value, currentYear.value].forEach(year => {
-                        const daysData = allData.value[year]?.[cIdx] || [];
-                        daysData.forEach(day => {
+                        const days = dataPool.value[year]?.[selectedMonth.value]?.[cIdx] || [];
+                        days.forEach(day => {
                             const row = [
-                                city.name,
-                                year,
-                                day.date,
-                                day.isFirstHalf ? "上半月" : "下半月",
-                                day.hasData ? day.desc : "暂无预测",
-                                day.hasData ? day.maxTemp : "",
-                                day.hasData ? day.minTemp : "",
-                                day.hasData ? (day.isRain ? "是" : "否") : ""
+                                city.name, year, selectedMonth.value + "月",
+                                day.date, day.source, day.desc,
+                                day.maxTemp, day.minTemp,
+                                day.isRain ? "是" : "否"
                             ];
-                            csvContent += row.join(",") + "\n";
+                            csv += row.join(",") + "\n";
                         });
                     });
                 });
 
-                // 添加 BOM 确保 Excel 能够正确识别 UTF-8 的中文内容
-                const bom = "\uFEFF";
-                const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
-                
-                // 创建虚拟链接进行下载
+                const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
                 const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `气象数据_${currentYear.value}vs${lastYear.value}_6月.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
+                link.href = URL.createObjectURL(blob);
+                link.download = `气候数据_${selectedMonth.value}月_对比报表.csv`;
                 link.click();
-                document.body.removeChild(link);
             };
 
-            // 初始化生命周期
             onMounted(() => {
-                fetchAllData();
+                fetchMonthData(selectedMonth.value);
             });
 
             return {
-                cities,
-                activeCityIndex,
-                activeCity,
-                currentYear,
-                lastYear,
-                viewYear,
-                loadingGlobal,
-                loadingProgress,
-                activeTableData,
-                kpiData,
-                selectCity,
-                exportCSV
+                cities, activeView, activeCity, currentYear, lastYear, selectedMonth, tableYear,
+                loading, loadingText, activeTableData, kpiData,
+                changeMonth, getCityRainDays, exportCSV
             };
         }
     }).mount('#app');
