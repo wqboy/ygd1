@@ -158,7 +158,7 @@
         <div v-if="loading" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/80 backdrop-blur-md transition-opacity">
             <div class="glass-card p-8 flex flex-col items-center shadow-xl">
                 <div class="spinner mb-4"></div>
-                <p class="text-[#1d1d1f] font-semibold">同步多维气象数据</p>
+                <p class="text-[#1d1d1f] font-semibold">同步多维气象数据ing</p>
                 <p class="text-sm text-[#86868b] mt-1">{{ loadingText }}</p>
             </div>
         </div>
@@ -167,7 +167,7 @@
         <aside class="w-64 flex-shrink-0 bg-[#fbfbfd] border-r border-[#e5e5ea] flex flex-col h-full z-10 shadow-[2px_0_12px_rgba(0,0,0,0.02)]">
             <div class="p-6 pb-4">
                 <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v4.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
-                <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 日更新</p>
+                <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 每日更新</p>
             </div>
 
             <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
@@ -334,7 +334,7 @@
                         <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                             <p class="text-xs text-slate-600 leading-relaxed">
-                                注：WMO气象模型通过高空雷达回波计算强对流(如代码96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
+                                注：WMO气象模型通过高空雷达回波计算强对流(如WMO 96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
                             </p>
                         </div>
 
