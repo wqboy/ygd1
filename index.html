@@ -9,6 +9,10 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- 引入 Leaflet 地图引擎的 CSS 与 JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
             --apple-bg: #f5f5f7;
@@ -88,6 +92,9 @@
         .badge-archive { background: #f2f2f7; color: #86868b; }
         .badge-forecast { background: #e8f2ff; color: #0071e3; }
         .badge-climate { background: #fdf0e6; color: #d97706; }
+
+        /* 地图图层避免穿透 */
+        .leaflet-container { font-family: inherit; z-index: 10; background: #f5f5f7; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex">
@@ -121,7 +128,7 @@
                 13城全局概览
             </button>
 
-            <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">优购哆·城市列表</div>
+            <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">优购哆·主要城市</div>
 
             <button
                 v-for="(city, index) in cities"
@@ -159,14 +166,26 @@
 
             <!-- ================= 全局概览视图 ================= -->
             <div v-show="activeView === 'overview'" class="space-y-6 animate-fade-in">
+
+                <!-- 新增：全国地图分布 -->
                 <div class="glass-card p-6">
-                    <h2 class="text-2xl font-bold tracking-tight mb-1">全国 13 城降雨天数对比</h2>
+                    <h2 class="text-xl font-bold tracking-tight mb-1">全国 13 城观测站分布</h2>
+                    <p class="text-[#86868b] text-sm mb-4">点击地图上的城市可直接查看气象及降雨动态雷达详情</p>
+                    <div class="h-80 w-full relative rounded-xl overflow-hidden border border-gray-200/50">
+                        <div id="chinaMap" class="w-full h-full"></div>
+                    </div>
+                </div>
+
+                <!-- 柱状图 -->
+                <div class="glass-card p-6">
+                    <h2 class="text-xl font-bold tracking-tight mb-1">降雨天数全局对比</h2>
                     <p class="text-[#86868b] text-sm mb-6">{{ currentYear }}年{{ selectedMonth }}月 vs {{ lastYear }}年同月 (已排除 WMO 51-57 毛毛雨)</p>
-                    <div class="h-80 w-full relative">
+                    <div class="h-72 w-full relative">
                         <canvas id="overviewChart"></canvas>
                     </div>
                 </div>
 
+                <!-- 13城 KPI Grid -->
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     <div v-for="(city, i) in cities" :key="i" class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer" @click="activeView = i">
                         <div class="font-bold text-lg mb-2">{{ city.name }}</div>
@@ -224,6 +243,18 @@
                     </div>
                 </div>
 
+                <!-- 新增：48小时动态降雨雷达 (Windy 引擎) -->
+                <div class="glass-card p-6">
+                    <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                        📡 局部雷达观测图 <span class="text-xs font-normal text-[#86868b] bg-gray-100 px-2 py-0.5 rounded-full">48小时动态预测</span>
+                    </h3>
+                    <p class="text-[#86868b] text-sm mb-4">可点击底部播放按钮，查看本地区未来48小时内的降雨云团运动轨迹。</p>
+                    <div class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200/50 relative bg-[#e3e3e8]">
+                        <!-- 动态生成当前城市的雷达 iframe -->
+                        <iframe v-if="activeView !== 'overview'" :src="windyUrl" class="w-full h-full border-0"></iframe>
+                    </div>
+                </div>
+
                 <!-- 折线图 -->
                 <div class="glass-card p-6">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
@@ -241,11 +272,10 @@
                         </div>
                     </div>
 
-                    <!-- 新增：极端天气免责/数据说明提示 -->
                     <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                         <p class="text-xs text-slate-600 leading-relaxed">
-                            注：WMO气象模型通过高空雷达回波计算强对流(如代码96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
+                            注：WMO气象模型通过高空雷达回波计算强对流(如WOM 96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
                         </p>
                     </div>
 
@@ -254,19 +284,16 @@
                     </div>
                 </div>
 
-                <!-- 详情表格 (增加 max-h 与 overflow-y 以支持 Excel 般首行冻结效果) -->
+                <!-- 详情表格 -->
                 <div class="glass-card overflow-hidden">
                     <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
                         <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
                         <button :class="tableYear === lastYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = lastYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">去年 ({{ lastYear }})</button>
                     </div>
-                    <!-- 加上最大高度，超出产生纵向滚动条 -->
-                    <div class="overflow-auto max-h-[520px] relative">
+                    <div class="overflow-auto max-h-[420px] relative">
                         <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
-                            <!-- thead 增加 sticky 属性，并配置 z-10 防止下方内容向上滚动时穿透 -->
                             <thead class="sticky top-0 z-10 bg-[#fbfbfd] shadow-[0_1px_0_rgba(0,0,0,0.05)]">
                                 <tr class="text-[#86868b]">
-                                    <!-- 使用 bg-[#fbfbfd] 给 th 上色，防穿透 -->
                                     <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">日期</th>
                                     <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">数据来源</th>
                                     <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">天气状况</th>
@@ -356,9 +383,10 @@
             const loading = ref(false);
             const loadingText = ref('');
 
-            // 图表实例引用 (使用 shallowRef 防止 Vue Reactivity 代理 Chart 内部属性)
+            // 实例引用
             const overviewChartRef = shallowRef(null);
             const lineChartRef = shallowRef(null);
+            const mapRef = shallowRef(null);
 
             const cities = [
                 { name: '深圳', lat: 22.54, lon: 114.06 }, { name: '广州', lat: 23.13, lon: 113.26 },
@@ -370,8 +398,16 @@
                 { name: '沈阳', lat: 41.80, lon: 123.43 }
             ];
 
-            // 数据池： structure: pool.value[year][month][cityIndex] = Array of days
+            // 数据池
             const dataPool = ref({});
+
+            // 根据所选城市，动态生成 Windy 雷达图 iframe URL
+            const windyUrl = computed(() => {
+                if (activeView.value === 'overview') return '';
+                const c = cities[activeView.value];
+                // 接入了降雨(rain)图层，定位到当前城市，带有 marker，默认放大层级为 8
+                return `https://embed.windy.com/embed2.html?lat=${c.lat}&lon=${c.lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&marker=true&type=map&metricRain=mm&metricTemp=%C2%B0C`;
+            });
 
             // ================= 气候基准幂等算法 =================
             const generateClimateBaseline = (city, year, month, day) => {
@@ -400,7 +436,7 @@
             // ================= 数据获取与组装 =================
             const fetchMonthData = async (month) => {
                 if (dataPool.value[currentYear.value]?.[month]) {
-                    renderCharts();
+                    renderVisuals();
                     return;
                 }
 
@@ -444,7 +480,6 @@
                             const dateDisplay = `${month}月${d}日`;
                             const isFirstHalf = d <= 15;
 
-                            // ----- 去年数据 -----
                             const lyDate = `${lastYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             let lyInfo = { source: "历史归档", hasData: false };
                             if (lyApi && lyApi.daily && lyApi.daily.time) {
@@ -463,14 +498,12 @@
                             if (!lyInfo.hasData) { lyInfo = { ...generateClimateBaseline(city, lastYear.value, month, d), source: "归档缺失(基准)" }; }
                             lyData.push({ date: lyDate, dateDisplay, isFirstHalf, ...lyInfo });
 
-                            // ----- 今年数据 -----
                             const tyDate = `${currentYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             const targetDateObj = new Date(currentYear.value, month - 1, d);
                             const todayZero = new Date(); todayZero.setHours(0,0,0,0);
 
                             let tyInfo = null;
 
-                            // 1. Forecast 匹配
                             if (fcApi && fcApi.daily && fcApi.daily.time) {
                                 const idx = fcApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && fcApi.daily.weather_code[idx] !== null) {
@@ -486,7 +519,6 @@
                                 }
                             }
 
-                            // 2. Archive 匹配
                             if (!tyInfo && tyaApi && tyaApi.daily && tyaApi.daily.time) {
                                 const idx = tyaApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && tyaApi.daily.weather_code[idx] !== null) {
@@ -501,10 +533,7 @@
                                 }
                             }
 
-                            // 3. 基准兜底
-                            if (!tyInfo) {
-                                tyInfo = generateClimateBaseline(city, currentYear.value, month, d);
-                            }
+                            if (!tyInfo) { tyInfo = generateClimateBaseline(city, currentYear.value, month, d); }
 
                             tyData.push({ date: tyDate, dateDisplay, isFirstHalf, ...tyInfo });
                         }
@@ -517,7 +546,7 @@
                     console.error(e);
                 } finally {
                     loading.value = false;
-                    renderCharts();
+                    renderVisuals();
                 }
             };
 
@@ -541,10 +570,7 @@
                     const days = dataPool.value[year]?.[selectedMonth.value]?.[cIdx] || [];
                     let t = 0, f = 0, s = 0;
                     days.forEach(d => {
-                        if (d.isRain) {
-                            t++;
-                            if (d.isFirstHalf) f++; else s++;
-                        }
+                        if (d.isRain) { t++; if (d.isFirstHalf) f++; else s++; }
                     });
                     return { totalRain: t, firstHalfRain: f, secondHalfRain: s };
                 };
@@ -557,10 +583,12 @@
                 fetchMonthData(m);
             };
 
-            const renderCharts = () => {
+            // 统一调度的渲染控制器
+            const renderVisuals = () => {
                 nextTick(() => {
                     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
                     if (activeView.value === 'overview') {
+                        renderChinaMap();
                         renderOverviewChart();
                     } else {
                         renderLineChart();
@@ -568,16 +596,62 @@
                 });
             };
 
-            // 彻底销毁旧实例，重新创建，完美解决画布重建不显示问题
+            // ================= 全国概览：Leaflet 地图引擎初始化 =================
+            const renderChinaMap = () => {
+                const mapDom = document.getElementById('chinaMap');
+                if (!mapDom) return;
+
+                if (mapRef.value) {
+                    mapRef.value.invalidateSize(); // 更新已存在的地图尺寸
+                    return;
+                }
+
+                // 创建极简风格地图底座 (定位到中国中心)
+                mapRef.value = L.map('chinaMap', {
+                    zoomControl: true,
+                    attributionControl: false,
+                    scrollWheelZoom: false // 禁用滚轮缩放避免干扰页面滚动
+                }).setView([35.8617, 104.1954], 4);
+
+                // 使用与苹果风格非常搭的 CartoDB 浅色基底图层
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    subdomains: 'abcd',
+                    maxZoom: 10
+                }).addTo(mapRef.value);
+
+                // 将 13 个城市绘制到地图上
+                cities.forEach((city, idx) => {
+                    // 自定义 HTML DOM 标记
+                    const icon = L.divIcon({
+                        className: 'empty-class-to-remove-default', // 移除默认的方块背景
+                        html: `
+                            <div class="relative cursor-pointer group flex justify-center items-center">
+                                <div class="w-4 h-4 bg-[#0071e3] border-2 border-white rounded-full shadow-md group-hover:scale-125 transition-transform duration-300"></div>
+                                <div class="absolute top-5 text-[11px] font-bold text-[#1d1d1f] whitespace-nowrap bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm opacity-90 group-hover:opacity-100 group-hover:text-[#0071e3] transition-all">
+                                    ${city.name}
+                                </div>
+                            </div>
+                        `,
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    });
+
+                    const marker = L.marker([city.lat, city.lon], { icon }).addTo(mapRef.value);
+                    // 点击标记跳转详情页
+                    marker.on('click', () => {
+                        activeView.value = idx;
+                    });
+                });
+            };
+
+            // 图表渲染逻辑
             const renderOverviewChart = () => {
                 const ctx = document.getElementById('overviewChart');
                 if (!ctx) return;
-
                 const labels = cities.map(c => c.name);
                 const tyData = cities.map((_, i) => getCityRainDays(currentYear.value, i));
                 const lyData = cities.map((_, i) => getCityRainDays(lastYear.value, i));
 
-                // 强制销毁旧图表，避免新 DOM Canvas 绑定失效
                 if (overviewChartRef.value) {
                     overviewChartRef.value.destroy();
                     overviewChartRef.value = null;
@@ -606,7 +680,6 @@
             const renderLineChart = () => {
                 const ctx = document.getElementById('cityLineChart');
                 if (!ctx) return;
-
                 const cIdx = activeView.value;
                 const tyList = dataPool.value[currentYear.value]?.[selectedMonth.value]?.[cIdx] || [];
                 const lyList = dataPool.value[lastYear.value]?.[selectedMonth.value]?.[cIdx] || [];
@@ -614,10 +687,8 @@
                 const labels = tyList.map((_, i) => `${i+1}日`);
                 const tyTemps = tyList.map(d => d.maxTemp);
                 const lyTemps = lyList.map(d => d.maxTemp);
-
                 const pointColors = tyList.map(d => d.source === '气候基准' ? '#f59e0b' : '#0071e3');
 
-                // 强制销毁旧图表，保障新生成的 Canvas DOM 加载成功
                 if (lineChartRef.value) {
                     lineChartRef.value.destroy();
                     lineChartRef.value = null;
@@ -666,12 +737,13 @@
                 });
             };
 
-            // 监听视图切换，重新渲染对应的图表，并同步表格年份
+            // 监听视图切换，重新渲染对应的图表及地图
             watch(activeView, (newVal) => {
                 tableYear.value = currentYear.value;
-                // 用 nextTick 配合少量延迟，确保 DOM 元素已经就绪后再执行图表实例化
                 nextTick(() => {
-                    setTimeout(renderCharts, 60);
+                    setTimeout(() => {
+                        renderVisuals();
+                    }, 60);
                 });
             });
 
@@ -708,7 +780,7 @@
 
             return {
                 cities, activeView, activeCity, currentYear, lastYear, selectedMonth, tableYear,
-                loading, loadingText, activeTableData, kpiData,
+                loading, loadingText, activeTableData, kpiData, windyUrl,
                 changeMonth, getCityRainDays, exportCSV
             };
         }
