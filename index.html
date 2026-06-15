@@ -8,100 +8,207 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- 引入 Leaflet 地图引擎的 CSS 与 JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         :root {
             --apple-bg: #f5f5f7;
-            --apple-card: rgba(255, 255, 255, 0.75);
+            --apple-card: rgba(255, 255, 255, 0.78);
             --apple-text: #1d1d1f;
             --apple-text-muted: #86868b;
             --apple-blue: #0071e3;
         }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--apple-bg);
             color: var(--apple-text);
             -webkit-font-smoothing: antialiased;
         }
-
-        /* 隐藏原生滚动条但保留功能，苹果风 */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #979797; }
-
         .glass-card {
             background: var(--apple-card);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02), 0 1px 4px rgba(0,0,0,0.02);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0,0,0,0.02);
             border-radius: 20px;
         }
-
-        /* 苹果风月份分段控制器 */
         .month-selector {
-            display: flex;
-            gap: 6px;
-            padding: 4px;
-            background: #e3e3e8;
-            border-radius: 14px;
-            overflow-x: auto;
+            display: flex; gap: 6px; padding: 4px;
+            background: #e3e3e8; border-radius: 14px; overflow-x: auto;
         }
         .month-selector button {
-            padding: 6px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 10px;
-            white-space: nowrap;
-            color: var(--apple-text-muted);
+            padding: 6px 18px; font-size: 14px; font-weight: 600;
+            border-radius: 10px; white-space: nowrap; color: var(--apple-text-muted);
             transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
         .month-selector button:hover { color: var(--apple-text); }
         .month-selector button.active {
-            background: #ffffff;
-            color: var(--apple-text);
+            background: #ffffff; color: var(--apple-text);
             box-shadow: 0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
         }
-
         .spinner {
             border: 3px solid rgba(0, 0, 0, 0.05);
             border-top: 3px solid var(--apple-blue);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            border-radius: 50%; width: 32px; height: 32px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* 标签样式 */
-        .badge {
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-        }
+        .badge { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 500; }
         .badge-archive { background: #f2f2f7; color: #86868b; }
         .badge-forecast { background: #e8f2ff; color: #0071e3; }
         .badge-climate { background: #fdf0e6; color: #d97706; }
-
-        /* 地图图层避免穿透 */
         .leaflet-container { font-family: inherit; z-index: 10; background: #f5f5f7; }
 
-        /* 淡入动画 */
+        /* ===== LOGIN PAGE PREMIUM REDESIGN ===== */
+        .login-bg {
+            background: linear-gradient(145deg, #f0f0f5 0%, #e8e8f0 40%, #ededf2 100%);
+        }
+        /* Subtle floating shapes for depth */
+        .login-bg::before {
+            content: '';
+            position: absolute;
+            top: -120px; left: -120px;
+            width: 420px; height: 420px;
+            background: radial-gradient(circle, rgba(0,113,227,0.06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .login-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -80px; right: -80px;
+            width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(88,86,214,0.05) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(32px) saturate(1.8);
+            -webkit-backdrop-filter: blur(32px) saturate(1.8);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow:
+                0 2px 0 0 rgba(255,255,255,0.6) inset,
+                0 24px 64px rgba(0, 0, 0, 0.08),
+                0 8px 24px rgba(0, 0, 0, 0.04),
+                0 2px 8px rgba(0, 0, 0, 0.03);
+            border-radius: 24px;
+        }
+        .logo-container {
+            position: relative;
+            display: inline-block;
+        }
+        .logo-img {
+            width: 88px; height: 88px;
+            border-radius: 22px;
+            object-fit: cover;
+            display: block;
+            box-shadow:
+                0 0 0 1px rgba(0,0,0,0.04),
+                0 8px 20px rgba(0, 0, 0, 0.14),
+                0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+        /* Subtle shine overlay on logo */
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50%;
+            border-radius: 22px 22px 0 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.18), transparent);
+            pointer-events: none;
+        }
+        .login-input {
+            width: 100%;
+            background: rgba(120, 120, 128, 0.06);
+            border: 1px solid rgba(0,0,0,0.07);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 15px;
+            color: #1d1d1f;
+            outline: none;
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+        }
+        .login-input::placeholder { color: #aeaeb2; }
+        .login-input:hover {
+            background: rgba(120, 120, 128, 0.09);
+            border-color: rgba(0,0,0,0.10);
+        }
+        .login-input:focus {
+            background: rgba(255,255,255,0.95);
+            border-color: #0071e3;
+            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+        }
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(180deg, #1a88f8 0%, #0071e3 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: all 0.15s ease;
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.2) inset,
+                0 4px 12px rgba(0, 113, 227, 0.35),
+                0 1px 3px rgba(0, 113, 227, 0.2);
+            -webkit-appearance: none;
+        }
+        .login-btn:hover {
+            background: linear-gradient(180deg, #2191ff 0%, #0077ed 100%);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.2) inset,
+                0 6px 16px rgba(0, 113, 227, 0.4),
+                0 2px 4px rgba(0, 113, 227, 0.25);
+            transform: translateY(-0.5px);
+        }
+        .login-btn:active {
+            transform: scale(0.98) translateY(0);
+            box-shadow:
+                0 1px 0 rgba(255,255,255,0.15) inset,
+                0 2px 6px rgba(0, 113, 227, 0.3);
+        }
+        /* Input icon prefix area */
+        .input-wrapper { position: relative; }
+        .input-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: #aeaeb2; pointer-events: none;
+            display: flex; align-items: center;
+        }
+        .login-input.has-icon { padding-left: 44px; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-login { animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+        /* Divider */
+        .login-divider {
+            display: flex; align-items: center; gap: 12px; margin: 4px 0;
+        }
+        .login-divider::before, .login-divider::after {
+            content: ''; flex: 1; height: 1px; background: rgba(0,0,0,0.07);
+        }
+        .login-divider span { font-size: 12px; color: #aeaeb2; white-space: nowrap; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex">
@@ -109,45 +216,75 @@
 <div id="app" class="flex w-full h-full relative" v-cloak>
 
     <!-- ================= 登录视图 ================= -->
-    <div v-if="!isLoggedIn" class="absolute inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-[#f5f5f7] to-[#e5e5ea]">
-        <div class="glass-card w-full max-w-sm p-10 flex flex-col items-center shadow-[0_20px_40px_rgba(0,0,0,0.08)] animate-fade-in">
-            <div class="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mb-6 shadow-md text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
-            </div>
-            <h1 class="text-2xl font-bold text-[#1d1d1f] tracking-tight mb-2">气候洞察系统 v4.0</h1>
-            <p class="text-sm text-[#86868b] mb-8 font-medium">请登录优购哆内部账号以继续</p>
+    <div v-if="!isLoggedIn" class="fixed inset-0 z-[100] login-bg flex items-center justify-center overflow-hidden">
+        <!-- 背景装饰点阵 -->
+        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
+            <div style="position:absolute;top:15%;left:8%;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(0,113,227,0.07) 0%,transparent 70%);"></div>
+            <div style="position:absolute;bottom:10%;right:6%;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(88,86,214,0.06) 0%,transparent 70%);"></div>
+            <div style="position:absolute;top:55%;left:55%;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(52,199,89,0.04) 0%,transparent 70%);"></div>
+        </div>
 
-            <div class="w-full space-y-4">
-                <div class="relative">
+        <div class="login-card w-full max-w-[360px] mx-4 p-10 flex flex-col items-center animate-login" style="position:relative;z-index:1;">
+
+            <!-- 品牌logo -->
+            <div class="logo-container mb-5">
+                <img src="data:image/jpeg;base64,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" alt="优购哆超市" class="logo-img" />
+            </div>
+
+            <!-- 标题区 -->
+            <div class="text-center mb-8">
+                <h1 style="font-size:22px;font-weight:700;color:#1d1d1f;letter-spacing:-0.025em;line-height:1.2;margin-bottom:6px;">天气洞察 v4.0</h1>
+                <p style="font-size:13.5px;color:#86868b;font-weight:400;letter-spacing:0.01em;">登录优购哆内部账号以继续</p>
+            </div>
+
+            <!-- 表单区 -->
+            <div style="width:100%;display:flex;flex-direction:column;gap:12px;">
+                <!-- 账号输入 -->
+                <div class="input-wrapper">
+                    <div class="input-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    </div>
                     <input
                         v-model="loginForm.username"
                         type="text"
-                        placeholder="请输入账号"
-                        class="w-full bg-white/60 border border-white rounded-xl px-4 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/50 focus:bg-white transition-all text-[#1d1d1f] placeholder-[#86868b]"
+                        placeholder="账号"
+                        class="login-input has-icon"
                         @keyup.enter="handleLogin"
-                    >
+                        autocomplete="username"
+                    />
                 </div>
-                <div class="relative">
+                <!-- 密码输入 -->
+                <div class="input-wrapper">
+                    <div class="input-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
                     <input
                         v-model="loginForm.password"
                         type="password"
-                        placeholder="请输入密码"
-                        class="w-full bg-white/60 border border-white rounded-xl px-4 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/50 focus:bg-white transition-all text-[#1d1d1f] placeholder-[#86868b]"
+                        placeholder="密码"
+                        class="login-input has-icon"
                         @keyup.enter="handleLogin"
-                    >
+                        autocomplete="current-password"
+                    />
                 </div>
-                <!-- 错误提示预留空间，防止撑开布局 -->
-                <div class="h-5 text-center">
-                    <p v-if="loginError" class="text-red-500 text-xs font-medium animate-fade-in">{{ loginError }}</p>
+
+                <!-- 错误提示区 -->
+                <div style="min-height:20px;text-align:center;">
+                    <div v-if="loginError" class="animate-fade-in" style="display:flex;align-items:center;justify-content:center;gap:5px;color:#ff3b30;font-size:13px;font-weight:500;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        { loginError }
+                    </div>
                 </div>
+
+                <!-- 登录按钮 -->
+                <button class="login-btn" @click="handleLogin">登录</button>
             </div>
 
-            <button
-                @click="handleLogin"
-                class="w-full bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white rounded-xl py-3.5 mt-2 font-semibold transition-all shadow-[0_4px_10px_rgba(0,113,227,0.3)]"
-            >
-                登录
-            </button>
+            <!-- 底部信息 -->
+            <div style="margin-top:28px;text-align:center;">
+                <p style="font-size:11.5px;color:#c7c7cc;letter-spacing:0.02em;">优购哆超市 · 内部专用系统</p>
+                <p style="font-size:11px;color:#d2d2d7;margin-top:3px;">© 2026 YGD · 数据安全保障</p>
+            </div>
         </div>
     </div>
 
@@ -169,9 +306,7 @@
                 <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v4.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
                 <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 每日更新</p>
             </div>
-
             <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
-                <!-- 全局概览按钮 -->
                 <button
                     @click="activeView = 'overview'"
                     class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all mb-4 flex items-center gap-3"
@@ -180,9 +315,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     13城全局概览
                 </button>
-
                 <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">优购哆·城市列表</div>
-
                 <button
                     v-for="(city, index) in cities"
                     :key="index"
@@ -193,8 +326,6 @@
                     <span>{{ city.name }}</span>
                 </button>
             </div>
-
-            <!-- 底部退出登录信息 -->
             <div class="p-4 border-t border-[#e5e5ea] flex justify-between items-center">
                 <span class="text-xs text-[#86868b] font-medium">{{ currentUser }}</span>
                 <button @click="handleLogout" class="text-xs text-[#0071e3] hover:underline font-medium">退出登录</button>
@@ -204,29 +335,18 @@
         <!-- 右侧内容区 -->
         <main class="flex-1 h-full overflow-y-auto bg-[#f5f5f7] relative">
             <div class="max-w-6xl mx-auto p-8 pt-6">
-
-                <!-- 顶部工具栏 (月份选择器 & 导出) -->
                 <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 sticky top-0 z-40 bg-[#f5f5f7]/90 backdrop-blur py-4 -mt-4">
                     <div class="month-selector hide-scrollbar flex-1 max-w-full lg:max-w-3xl">
-                        <button
-                            v-for="m in 12" :key="m"
-                            :class="{ active: selectedMonth === m }"
-                            @click="changeMonth(m)"
-                        >
-                            {{ m }}月
-                        </button>
+                        <button v-for="m in 12" :key="m" :class="{ active: selectedMonth === m }" @click="changeMonth(m)">{{ m }}月</button>
                     </div>
-
                     <button @click="exportCSV" class="flex-shrink-0 flex items-center gap-2 bg-white hover:bg-[#f2f2f7] border border-[#d2d2d7] text-[#1d1d1f] px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                         导出 {{ selectedMonth }}月 完整CSV
                     </button>
                 </header>
 
-                <!-- ================= 全局概览视图 ================= -->
+                <!-- 全局概览 -->
                 <div v-show="activeView === 'overview'" class="space-y-6 animate-fade-in">
-
-                    <!-- 新增：全国地图分布 -->
                     <div class="glass-card p-6">
                         <h2 class="text-xl font-bold tracking-tight mb-1">全国 13 城观测站分布</h2>
                         <p class="text-[#86868b] text-sm mb-4">点击地图上的城市可直接查看气象及降雨动态雷达详情</p>
@@ -234,17 +354,11 @@
                             <div id="chinaMap" class="w-full h-full"></div>
                         </div>
                     </div>
-
-                    <!-- 柱状图 -->
                     <div class="glass-card p-6">
                         <h2 class="text-xl font-bold tracking-tight mb-1">降雨天数全局对比</h2>
                         <p class="text-[#86868b] text-sm mb-6">{{ currentYear }}年{{ selectedMonth }}月 vs {{ lastYear }}年同月 (已排除 WMO 51-57 毛毛雨)</p>
-                        <div class="h-72 w-full relative">
-                            <canvas id="overviewChart"></canvas>
-                        </div>
+                        <div class="h-72 w-full relative"><canvas id="overviewChart"></canvas></div>
                     </div>
-
-                    <!-- 13城 KPI Grid -->
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         <div v-for="(city, i) in cities" :key="i" class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer" @click="activeView = i">
                             <div class="font-bold text-lg mb-2">{{ city.name }}</div>
@@ -260,15 +374,12 @@
                     </div>
                 </div>
 
-                <!-- ================= 单城市详情视图 ================= -->
+                <!-- 单城市详情 -->
                 <div v-if="activeView !== 'overview'" class="space-y-6 animate-fade-in">
-
                     <h2 class="text-3xl font-bold tracking-tight flex items-baseline gap-3">
                         {{ activeCity.name }}
                         <span class="text-xl text-[#86868b] font-medium">{{ currentYear }}年{{ selectedMonth }}月 气象洞察</span>
                     </h2>
-
-                    <!-- KPI 卡片 -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="glass-card p-6 flex flex-col justify-between">
                             <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">☔️ 总降雨天数</div>
@@ -301,20 +412,13 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- 48小时动态降雨雷达 (Windy 引擎) -->
                     <div class="glass-card p-6">
-                        <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
-                            📡 局部雷达观测图 <span class="text-xs font-normal text-[#86868b] bg-gray-100 px-2 py-0.5 rounded-full">48小时动态预测</span>
-                        </h3>
+                        <h3 class="text-lg font-bold mb-1 flex items-center gap-2">📡 局部雷达观测图 <span class="text-xs font-normal text-[#86868b] bg-gray-100 px-2 py-0.5 rounded-full">48小时动态预测</span></h3>
                         <p class="text-[#86868b] text-sm mb-4">可点击底部播放按钮，查看本地区未来48小时内的降雨云团运动轨迹。</p>
                         <div class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200/50 relative bg-[#e3e3e8]">
-                            <!-- 动态生成当前城市的雷达 iframe -->
                             <iframe v-if="activeView !== 'overview'" :src="windyUrl" class="w-full h-full border-0"></iframe>
                         </div>
                     </div>
-
-                    <!-- 折线图 -->
                     <div class="glass-card p-6">
                         <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
                             <div>
@@ -330,20 +434,12 @@
                                 <span class="badge badge-climate">气候基准</span>
                             </div>
                         </div>
-
                         <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                            <p class="text-xs text-slate-600 leading-relaxed">
-                                注：WMO气象模型通过高空雷达回波计算强对流(如WMO 96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
-                            </p>
+                            <p class="text-xs text-slate-600 leading-relaxed">注：WMO气象模型通过高空雷达回波计算强对流(如WMO 96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的"极强对流(冰雹风险)"意在提示降水强度极高，实际情况请以地表观测为准。</p>
                         </div>
-
-                        <div class="h-64 w-full">
-                            <canvas id="cityLineChart"></canvas>
-                        </div>
+                        <div class="h-64 w-full"><canvas id="cityLineChart"></canvas></div>
                     </div>
-
-                    <!-- 详情表格 -->
                     <div class="glass-card overflow-hidden">
                         <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
                             <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
@@ -363,18 +459,9 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
                                     <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-white/60 transition-colors">
-                                        <td class="px-6 py-3.5 font-medium">{{ day.dateDisplay }} <span class="text-xs text-gray-400 ml-1">({{ day.isFirstHalf ? '上半月' : '下半月' }})</span></td>
-                                        <td class="px-6 py-3.5">
-                                            <span class="badge" :class="{'badge-archive': day.source==='历史归档', 'badge-forecast': day.source==='实时预测', 'badge-climate': day.source==='气候基准'}">
-                                                {{ day.source }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-3.5">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-lg">{{ day.icon }}</span>
-                                                <span>{{ day.desc }}</span>
-                                            </div>
-                                        </td>
+                                        <td class="px-6 py-3.5 font-medium">{{ day.dateDisplay }} <span class="text-xs text-gray-400 ml-1">({{ getWeekday(day.date) }})</span></td>
+                                        <td class="px-6 py-3.5"><span class="badge" :class="{'badge-archive': day.source==='历史归档', 'badge-forecast': day.source==='实时预测', 'badge-climate': day.source==='气候基准'}">{{ day.source }}</span></td>
+                                        <td class="px-6 py-3.5"><div class="flex items-center gap-2"><span class="text-lg">{{ day.icon }}</span><span>{{ day.desc }}</span></div></td>
                                         <td class="px-6 py-3.5">
                                             <span v-if="day.isRain" class="inline-flex items-center gap-1 font-semibold text-[#0071e3]"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
                                             <span v-else class="text-[#86868b]">否</span>
@@ -387,8 +474,7 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="h-16"></div> <!-- 底部留白 -->
+                <div class="h-16"></div>
             </div>
         </main>
     </div>
@@ -396,8 +482,6 @@
 
 <script>
     const { createApp, ref, computed, onMounted, watch, nextTick, shallowRef } = Vue;
-
-    // 核心天气字典
     const WMO_CODES = {
         0: { desc: "晴天", icon: "☀️", rain: false },
         1: { desc: "大部晴朗", icon: "🌤️", rain: false },
@@ -428,69 +512,44 @@
         96: { desc: "强雷暴(局部极强对流)", icon: "⛈️", rain: true },
         99: { desc: "极端雷暴(局地冰雹风险)", icon: "⛈️", rain: true },
     };
-
-    // 授权账号映射字典
     const AUTHORIZED_ACCOUNTS = {
         'ygd_yunyingbu': 'ygd_yunyingbu123',
         'ygd_mdyy': 'ygd_mdyy001',
         'ygd_shujubu': 'ygd_shujubu456',
         'ygd_buhuozu': 'ygd_buhuozu789',
-        'ygd_gongyinglian': 'ygd_gongyinglian123' // 如需修正为 ygd_gongyinglian123 可自行调整，此处按要求录入
+        'ygd_gongyinglian': 'ygd_gongyinglian123'
     };
-
     createApp({
         setup() {
-            // ================= 登录状态管理 =================
             const isLoggedIn = ref(false);
             const loginForm = ref({ username: '', password: '' });
             const loginError = ref('');
             const currentUser = ref('');
-
             const handleLogin = () => {
                 const { username, password } = loginForm.value;
-                if (!username.trim() || !password.trim()) {
-                    loginError.value = "请输入账号和密码";
-                    return;
-                }
-
+                if (!username.trim() || !password.trim()) { loginError.value = "请输入账号和密码"; return; }
                 if (AUTHORIZED_ACCOUNTS[username] && AUTHORIZED_ACCOUNTS[username] === password) {
-                    isLoggedIn.value = true;
-                    currentUser.value = username;
-                    loginError.value = "";
-                    // 登录成功后，才开始获取数据并加载仪表盘
+                    isLoggedIn.value = true; currentUser.value = username; loginError.value = "";
                     fetchMonthData(selectedMonth.value);
-                } else {
-                    loginError.value = "账号或密码不正确，请重新输入";
-                }
+                } else { loginError.value = "账号或密码不正确，请重新输入"; }
             };
-
             const handleLogout = () => {
-                isLoggedIn.value = false;
-                loginForm.value.password = '';
-                currentUser.value = '';
-                // 登出时销毁原有的图表和地图数据
+                isLoggedIn.value = false; loginForm.value.password = ''; currentUser.value = '';
                 if (overviewChartRef.value) { overviewChartRef.value.destroy(); overviewChartRef.value = null; }
                 if (lineChartRef.value) { lineChartRef.value.destroy(); lineChartRef.value = null; }
                 if (mapRef.value) { mapRef.value.remove(); mapRef.value = null; }
             };
-
-            // ================= 系统状态 =================
             const today = new Date();
             const currentYear = ref(today.getFullYear());
             const lastYear = ref(currentYear.value - 1);
-            const selectedMonth = ref(today.getMonth() + 1); // 默认当前月
-
-            const activeView = ref('overview'); // 'overview' 或 city index
-            const tableYear = ref(currentYear.value); // 详情页表格显示的年份
-
+            const selectedMonth = ref(today.getMonth() + 1);
+            const activeView = ref('overview');
+            const tableYear = ref(currentYear.value);
             const loading = ref(false);
             const loadingText = ref('');
-
-            // 实例引用
             const overviewChartRef = shallowRef(null);
             const lineChartRef = shallowRef(null);
             const mapRef = shallowRef(null);
-
             const cities = [
                 { name: '深圳', lat: 22.54, lon: 114.06 }, { name: '广州', lat: 23.13, lon: 113.26 },
                 { name: '上海', lat: 31.23, lon: 121.47 }, { name: '杭州', lat: 30.27, lon: 120.15 },
@@ -500,88 +559,52 @@
                 { name: '武汉', lat: 30.59, lon: 114.30 }, { name: '北京', lat: 39.90, lon: 116.40 },
                 { name: '沈阳', lat: 41.80, lon: 123.43 }
             ];
-
-            // 数据池
             const dataPool = ref({});
-
-            // 根据所选城市，动态生成 Windy 雷达图 iframe URL
             const windyUrl = computed(() => {
                 if (activeView.value === 'overview') return '';
                 const c = cities[activeView.value];
                 return `https://embed.windy.com/embed2.html?lat=${c.lat}&lon=${c.lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&marker=true&type=map&metricRain=mm&metricTemp=%C2%B0C`;
             });
-
-            // ================= 气候基准幂等算法 =================
             const generateClimateBaseline = (city, year, month, day) => {
                 const seed = Math.sin(city.lat * 12.9898 + city.lon * 78.233 + month * 4.56 + day * 1.23) * 43758.5453;
                 const rand = seed - Math.floor(seed);
-
                 const seasonalOffset = Math.sin((month - 4) * Math.PI / 6);
                 const latEffect = (city.lat - 20) * 0.8;
                 let baseTemp = 26 - latEffect + (seasonalOffset * (latEffect + 8));
-
                 const maxTemp = Math.round(baseTemp + rand * 6);
                 const minTemp = Math.round(baseTemp - 4 - rand * 4);
-
                 const rainProb = city.lat < 30 ? (month >= 4 && month <= 9 ? 0.45 : 0.2) : (month >= 6 && month <= 8 ? 0.35 : 0.1);
                 const isRain = rand < rainProb;
-
-                return {
-                    isRain, maxTemp, minTemp,
-                    desc: isRain ? "气候均值(雨)" : "气候均值(晴)",
-                    icon: isRain ? "📊☔" : "📊☁️",
-                    code: isRain ? 61 : 2,
-                    source: "气候基准"
-                };
+                return { isRain, maxTemp, minTemp, desc: isRain ? "气候均值(雨)" : "气候均值(晴)", icon: isRain ? "📊☔" : "📊☁️", code: isRain ? 61 : 2, source: "气候基准" };
             };
-
-            // ================= 数据获取与组装 =================
             const fetchMonthData = async (month) => {
-                if (dataPool.value[currentYear.value]?.[month]) {
-                    renderVisuals();
-                    return;
-                }
-
-                loading.value = true;
-                loadingText.value = `正在获取 ${month} 月多维度数据...`;
-
+                if (dataPool.value[currentYear.value]?.[month]) { renderVisuals(); return; }
+                loading.value = true; loadingText.value = `正在获取 ${month} 月多维度数据...`;
                 const daysInMonth = new Date(currentYear.value, month, 0).getDate();
                 const startDateStr = `${String(month).padStart(2, '0')}-01`;
                 const endDateStr = `${String(month).padStart(2, '0')}-${daysInMonth}`;
-
                 const lats = cities.map(c => c.lat).join(',');
                 const lons = cities.map(c => c.lon).join(',');
-
                 const urlLastYear = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${lastYear.value}-${startDateStr}&end_date=${lastYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
                 const urlForecast = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai&past_days=92&forecast_days=16`;
                 const urlThisYearArchive = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${currentYear.value}-${startDateStr}&end_date=${currentYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
-
                 try {
                     const [resLastYear, resForecast, resThisYearArchive] = await Promise.all([
                         fetch(urlLastYear).then(r => r.json()).catch(() => ({})),
                         fetch(urlForecast).then(r => r.json()).catch(() => ({})),
                         fetch(urlThisYearArchive).then(r => r.json()).catch(() => ({}))
                     ]);
-
-                    const initYearMap = (year) => {
-                        if (!dataPool.value[year]) dataPool.value[year] = {};
-                        dataPool.value[year][month] = {};
-                    };
-                    initYearMap(lastYear.value);
-                    initYearMap(currentYear.value);
-
+                    const initYearMap = (year) => { if (!dataPool.value[year]) dataPool.value[year] = {}; dataPool.value[year][month] = {}; };
+                    initYearMap(lastYear.value); initYearMap(currentYear.value);
                     cities.forEach((city, cIdx) => {
                         const lyData = [], tyData = [];
-
                         const lyApi = Array.isArray(resLastYear) ? resLastYear[cIdx] : resLastYear;
                         const fcApi = Array.isArray(resForecast) ? resForecast[cIdx] : resForecast;
                         const tyaApi = Array.isArray(resThisYearArchive) ? resThisYearArchive[cIdx] : resThisYearArchive;
-
                         for (let d = 1; d <= daysInMonth; d++) {
                             const dateNum = String(d).padStart(2, '0');
                             const dateDisplay = `${month}月${d}日`;
                             const isFirstHalf = d <= 15;
-
                             const lyDate = `${lastYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             let lyInfo = { source: "历史归档", hasData: false };
                             if (lyApi && lyApi.daily && lyApi.daily.time) {
@@ -589,188 +612,98 @@
                                 if (idx !== -1 && lyApi.daily.weather_code[idx] !== null) {
                                     const code = lyApi.daily.weather_code[idx];
                                     const w = WMO_CODES[code] || WMO_CODES[0];
-                                    lyInfo = {
-                                        source: "历史归档", hasData: true,
-                                        isRain: w.rain, code: code, desc: w.desc, icon: w.icon,
-                                        maxTemp: Math.round(lyApi.daily.temperature_2m_max[idx]),
-                                        minTemp: Math.round(lyApi.daily.temperature_2m_min[idx])
-                                    };
+                                    lyInfo = { source: "历史归档", hasData: true, isRain: w.rain, code, desc: w.desc, icon: w.icon, maxTemp: Math.round(lyApi.daily.temperature_2m_max[idx]), minTemp: Math.round(lyApi.daily.temperature_2m_min[idx]) };
                                 }
                             }
                             if (!lyInfo.hasData) { lyInfo = { ...generateClimateBaseline(city, lastYear.value, month, d), source: "归档缺失(基准)" }; }
                             lyData.push({ date: lyDate, dateDisplay, isFirstHalf, ...lyInfo });
-
                             const tyDate = `${currentYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             const targetDateObj = new Date(currentYear.value, month - 1, d);
                             const todayZero = new Date(); todayZero.setHours(0,0,0,0);
-
                             let tyInfo = null;
-
                             if (fcApi && fcApi.daily && fcApi.daily.time) {
                                 const idx = fcApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && fcApi.daily.weather_code[idx] !== null) {
                                     const code = fcApi.daily.weather_code[idx];
                                     const w = WMO_CODES[code] || WMO_CODES[0];
                                     const isFuture = targetDateObj > todayZero;
-                                    tyInfo = {
-                                        source: isFuture ? "实时预测" : "历史归档",
-                                        isRain: w.rain, code, desc: w.desc, icon: w.icon,
-                                        maxTemp: Math.round(fcApi.daily.temperature_2m_max[idx]),
-                                        minTemp: Math.round(fcApi.daily.temperature_2m_min[idx])
-                                    };
+                                    tyInfo = { source: isFuture ? "实时预测" : "历史归档", isRain: w.rain, code, desc: w.desc, icon: w.icon, maxTemp: Math.round(fcApi.daily.temperature_2m_max[idx]), minTemp: Math.round(fcApi.daily.temperature_2m_min[idx]) };
                                 }
                             }
-
                             if (!tyInfo && tyaApi && tyaApi.daily && tyaApi.daily.time) {
                                 const idx = tyaApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && tyaApi.daily.weather_code[idx] !== null) {
                                     const code = tyaApi.daily.weather_code[idx];
                                     const w = WMO_CODES[code] || WMO_CODES[0];
-                                    tyInfo = {
-                                        source: "历史归档",
-                                        isRain: w.rain, code, desc: w.desc, icon: w.icon,
-                                        maxTemp: Math.round(tyaApi.daily.temperature_2m_max[idx]),
-                                        minTemp: Math.round(tyaApi.daily.temperature_2m_min[idx])
-                                    };
+                                    tyInfo = { source: "历史归档", isRain: w.rain, code, desc: w.desc, icon: w.icon, maxTemp: Math.round(tyaApi.daily.temperature_2m_max[idx]), minTemp: Math.round(tyaApi.daily.temperature_2m_min[idx]) };
                                 }
                             }
-
                             if (!tyInfo) { tyInfo = generateClimateBaseline(city, currentYear.value, month, d); }
-
                             tyData.push({ date: tyDate, dateDisplay, isFirstHalf, ...tyInfo });
                         }
-
                         dataPool.value[lastYear.value][month][cIdx] = lyData;
                         dataPool.value[currentYear.value][month][cIdx] = tyData;
                     });
-
-                } catch (e) {
-                    console.error(e);
-                } finally {
-                    loading.value = false;
-                    renderVisuals();
-                }
+                } catch (e) { console.error(e); } finally { loading.value = false; renderVisuals(); }
             };
-
-            // ================= 数据计算属性 =================
             const activeCity = computed(() => activeView.value === 'overview' ? {} : cities[activeView.value]);
-
             const activeTableData = computed(() => {
                 if (activeView.value === 'overview') return [];
                 return dataPool.value[tableYear.value]?.[selectedMonth.value]?.[activeView.value] || [];
             });
-
             const getCityRainDays = (year, cityIdx) => {
                 const days = dataPool.value[year]?.[selectedMonth.value]?.[cityIdx] || [];
                 return days.filter(d => d.isRain).length;
             };
-
             const kpiData = computed(() => {
                 if (activeView.value === 'overview') return { thisYear:{}, lastYear:{} };
                 const cIdx = activeView.value;
                 const calc = (year) => {
                     const days = dataPool.value[year]?.[selectedMonth.value]?.[cIdx] || [];
                     let t = 0, f = 0, s = 0;
-                    days.forEach(d => {
-                        if (d.isRain) { t++; if (d.isFirstHalf) f++; else s++; }
-                    });
+                    days.forEach(d => { if (d.isRain) { t++; if (d.isFirstHalf) f++; else s++; } });
                     return { totalRain: t, firstHalfRain: f, secondHalfRain: s };
                 };
                 return { thisYear: calc(currentYear.value), lastYear: calc(lastYear.value) };
             });
-
-            // ================= 视图与图表控制 =================
-            const changeMonth = (m) => {
-                selectedMonth.value = m;
-                fetchMonthData(m);
-            };
-
-            // 统一调度的渲染控制器
+            const changeMonth = (m) => { selectedMonth.value = m; fetchMonthData(m); };
             const renderVisuals = () => {
-                // 如果用户被退出了，就不渲染
                 if (!isLoggedIn.value) return;
-
                 nextTick(() => {
                     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
-                    if (activeView.value === 'overview') {
-                        renderChinaMap();
-                        renderOverviewChart();
-                    } else {
-                        renderLineChart();
-                    }
+                    if (activeView.value === 'overview') { renderChinaMap(); renderOverviewChart(); }
+                    else { renderLineChart(); }
                 });
             };
-
-            // ================= 全国概览：Leaflet 地图引擎初始化 =================
             const renderChinaMap = () => {
                 const mapDom = document.getElementById('chinaMap');
                 if (!mapDom) return;
-
-                if (mapRef.value) {
-                    mapRef.value.invalidateSize(); // 更新已存在的地图尺寸
-                    return;
-                }
-
-                // 创建极简风格地图底座 (定位到中国中心)
-                mapRef.value = L.map('chinaMap', {
-                    zoomControl: true,
-                    attributionControl: false,
-                    scrollWheelZoom: false // 禁用滚轮缩放避免干扰页面滚动
-                }).setView([35.8617, 104.1954], 4);
-
-                // 使用与苹果风格非常搭的 CartoDB 浅色基底图层
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                    subdomains: 'abcd',
-                    maxZoom: 10
-                }).addTo(mapRef.value);
-
-                // 将 13 个城市绘制到地图上
+                if (mapRef.value) { mapRef.value.invalidateSize(); return; }
+                mapRef.value = L.map('chinaMap', { zoomControl: true, attributionControl: false, scrollWheelZoom: false }).setView([35.8617, 104.1954], 4);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 10 }).addTo(mapRef.value);
                 cities.forEach((city, idx) => {
-                    // 自定义 HTML DOM 标记
                     const icon = L.divIcon({
-                        className: 'empty-class-to-remove-default', // 移除默认的方块背景
-                        html: `
-                            <div class="relative cursor-pointer group flex justify-center items-center">
-                                <div class="w-4 h-4 bg-[#0071e3] border-2 border-white rounded-full shadow-md group-hover:scale-125 transition-transform duration-300"></div>
-                                <div class="absolute top-5 text-[11px] font-bold text-[#1d1d1f] whitespace-nowrap bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm opacity-90 group-hover:opacity-100 group-hover:text-[#0071e3] transition-all">
-                                    ${city.name}
-                                </div>
-                            </div>
-                        `,
-                        iconSize: [16, 16],
-                        iconAnchor: [8, 8]
+                        className: 'empty-class-to-remove-default',
+                        html: `<div class="relative cursor-pointer group flex justify-center items-center"><div class="w-4 h-4 bg-[#0071e3] border-2 border-white rounded-full shadow-md group-hover:scale-125 transition-transform duration-300"></div><div class="absolute top-5 text-[11px] font-bold text-[#1d1d1f] whitespace-nowrap bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm opacity-90 group-hover:opacity-100 group-hover:text-[#0071e3] transition-all">${city.name}</div></div>`,
+                        iconSize: [16, 16], iconAnchor: [8, 8]
                     });
-
                     const marker = L.marker([city.lat, city.lon], { icon }).addTo(mapRef.value);
-                    // 点击标记跳转详情页
-                    marker.on('click', () => {
-                        activeView.value = idx;
-                    });
+                    marker.on('click', () => { activeView.value = idx; });
                 });
             };
-
-            // 图表渲染逻辑
             const renderOverviewChart = () => {
                 const ctx = document.getElementById('overviewChart');
                 if (!ctx) return;
                 const labels = cities.map(c => c.name);
                 const tyData = cities.map((_, i) => getCityRainDays(currentYear.value, i));
                 const lyData = cities.map((_, i) => getCityRainDays(lastYear.value, i));
-
-                if (overviewChartRef.value) {
-                    overviewChartRef.value.destroy();
-                    overviewChartRef.value = null;
-                }
-
+                if (overviewChartRef.value) { overviewChartRef.value.destroy(); overviewChartRef.value = null; }
                 overviewChartRef.value = new Chart(ctx, {
                     type: 'bar',
-                    data: {
-                        labels,
-                        datasets: [
-                            { label: `今年 ${selectedMonth.value}月`, data: tyData, backgroundColor: '#0071e3', borderRadius: 6 },
-                            { label: `去年 ${selectedMonth.value}月`, data: lyData, backgroundColor: '#d2d2d7', borderRadius: 6 }
-                        ]
-                    },
+                    data: { labels, datasets: [
+                        { label: `今年 ${selectedMonth.value}月`, data: tyData, backgroundColor: '#0071e3', borderRadius: 6 },
+                        { label: `去年 ${selectedMonth.value}月`, data: lyData, backgroundColor: '#d2d2d7', borderRadius: 6 }
+                    ]},
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { position: 'top', align: 'end', labels:{ boxWidth: 12, usePointStyle: true } } },
@@ -781,41 +714,23 @@
                     }
                 });
             };
-
             const renderLineChart = () => {
                 const ctx = document.getElementById('cityLineChart');
                 if (!ctx) return;
                 const cIdx = activeView.value;
                 const tyList = dataPool.value[currentYear.value]?.[selectedMonth.value]?.[cIdx] || [];
                 const lyList = dataPool.value[lastYear.value]?.[selectedMonth.value]?.[cIdx] || [];
-
                 const labels = tyList.map((_, i) => `${i+1}日`);
                 const tyTemps = tyList.map(d => d.maxTemp);
                 const lyTemps = lyList.map(d => d.maxTemp);
                 const pointColors = tyList.map(d => d.source === '气候基准' ? '#f59e0b' : '#0071e3');
-
-                if (lineChartRef.value) {
-                    lineChartRef.value.destroy();
-                    lineChartRef.value = null;
-                }
-
+                if (lineChartRef.value) { lineChartRef.value.destroy(); lineChartRef.value = null; }
                 lineChartRef.value = new Chart(ctx, {
                     type: 'line',
-                    data: {
-                        labels,
-                        datasets: [
-                            {
-                                label: `今年最高温`, data: tyTemps,
-                                borderColor: '#0071e3', borderWidth: 2, tension: 0.3,
-                                pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: 4, pointHoverRadius: 6
-                            },
-                            {
-                                label: `去年最高温`, data: lyTemps,
-                                borderColor: '#d2d2d7', borderDash: [5, 5], borderWidth: 2, tension: 0.3,
-                                pointRadius: 0, pointHoverRadius: 4
-                            }
-                        ]
-                    },
+                    data: { labels, datasets: [
+                        { label: `今年最高温`, data: tyTemps, borderColor: '#0071e3', borderWidth: 2, tension: 0.3, pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: 4, pointHoverRadius: 6 },
+                        { label: `去年最高温`, data: lyTemps, borderColor: '#d2d2d7', borderDash: [5, 5], borderWidth: 2, tension: 0.3, pointRadius: 0, pointHoverRadius: 4 }
+                    ]},
                     options: {
                         responsive: true, maintainAspectRatio: false,
                         interaction: { mode: 'index', intersect: false },
@@ -824,14 +739,7 @@
                             tooltip: {
                                 backgroundColor: 'rgba(255,255,255,0.9)', titleColor: '#000', bodyColor: '#000',
                                 borderColor: '#d2d2d7', borderWidth: 1, padding: 10,
-                                callbacks: {
-                                    afterBody: (context) => {
-                                        if(context[0].datasetIndex === 0) {
-                                            const idx = context[0].dataIndex;
-                                            return `来源: ${tyList[idx].source}`;
-                                        }
-                                    }
-                                }
+                                callbacks: { afterBody: (context) => { if(context[0].datasetIndex === 0) { const idx = context[0].dataIndex; return `来源: ${tyList[idx].source}`; } } }
                             }
                         },
                         scales: {
@@ -841,56 +749,38 @@
                     }
                 });
             };
-
-            // 监听视图切换，重新渲染对应的图表及地图
-            watch(activeView, (newVal) => {
-                tableYear.value = currentYear.value;
-                nextTick(() => {
-                    setTimeout(() => {
-                        renderVisuals();
-                    }, 60);
-                });
-            });
-
-            // ================= CSV 导出功能 =================
+            watch(activeView, (newVal) => { tableYear.value = currentYear.value; nextTick(() => { setTimeout(() => { renderVisuals(); }, 60); }); });
             const exportCSV = () => {
                 const headers = ["城市", "年份", "月份", "日期", "数据来源", "天气状况", "最高温(°C)", "最低温(°C)", "有效降雨(排除毛毛雨)"];
                 let csv = headers.join(",") + "\n";
-
                 cities.forEach((city, cIdx) => {
                     [lastYear.value, currentYear.value].forEach(year => {
                         const days = dataPool.value[year]?.[selectedMonth.value]?.[cIdx] || [];
                         days.forEach(day => {
-                            const row = [
-                                city.name, year, selectedMonth.value + "月",
-                                day.date, day.source, day.desc,
-                                day.maxTemp, day.minTemp,
-                                day.isRain ? "是" : "否"
-                            ];
+                            const row = [city.name, year, selectedMonth.value + "月", day.date, day.source, day.desc, day.maxTemp, day.minTemp, day.isRain ? "是" : "否"];
                             csv += row.join(",") + "\n";
                         });
                     });
                 });
-
                 const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
                 const link = document.createElement("a");
                 link.href = URL.createObjectURL(blob);
                 link.download = `气候数据_${selectedMonth.value}月_对比报表.csv`;
                 link.click();
             };
+            onMounted(() => {});
 
-            // 初始组件挂载时，因为默认是未登录状态，这里去掉了原本的 fetchMonthData 调用。
-            onMounted(() => {
-               // 移至 handleLogin 中触发
-            });
-
+            // 获取星期几
+            const getWeekday = (dateStr) => {
+                const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const d = new Date(dateStr);
+                return days[d.getDay()];
+            };
             return {
-                // 登录暴露项
                 isLoggedIn, loginForm, loginError, handleLogin, handleLogout, currentUser,
-                // 原有暴露项
                 cities, activeView, activeCity, currentYear, lastYear, selectedMonth, tableYear,
                 loading, loadingText, activeTableData, kpiData, windyUrl,
-                changeMonth, getCityRainDays, exportCSV
+                changeMonth, getCityRainDays, exportCSV, getWeekday
             };
         }
     }).mount('#app');
