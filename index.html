@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>优购哆·气象数据看板v3.0</title>
+    <title>优购哆·气象数据看板v4.0</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
@@ -106,7 +106,7 @@
     <!-- 左侧导航 -->
     <aside class="w-64 flex-shrink-0 bg-[#fbfbfd] border-r border-[#e5e5ea] flex flex-col h-full z-10 shadow-[2px_0_12px_rgba(0,0,0,0.02)]">
         <div class="p-6 pb-4">
-            <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v3.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
+            <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v4.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
             <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 日更新</p>
         </div>
 
@@ -226,7 +226,7 @@
 
                 <!-- 折线图 -->
                 <div class="glass-card p-6">
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
                         <div>
                             <h3 class="text-lg font-bold">最高温走势 & 数据分布</h3>
                             <p class="text-xs text-[#86868b] mt-1">融合历史归档、气象台16天预测与30年气候基准推演</p>
@@ -240,27 +240,39 @@
                             <span class="badge badge-climate">气候基准</span>
                         </div>
                     </div>
+
+                    <!-- 新增：极端天气免责/数据说明提示 -->
+                    <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            注：WMO气象模型通过高空雷达回波计算强对流(如代码96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
+                        </p>
+                    </div>
+
                     <div class="h-64 w-full">
                         <canvas id="cityLineChart"></canvas>
                     </div>
                 </div>
 
-                <!-- 详情表格 -->
+                <!-- 详情表格 (增加 max-h 与 overflow-y 以支持 Excel 般首行冻结效果) -->
                 <div class="glass-card overflow-hidden">
                     <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
                         <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
                         <button :class="tableYear === lastYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = lastYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">去年 ({{ lastYear }})</button>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm whitespace-nowrap">
-                            <thead>
-                                <tr class="bg-[#fbfbfd]/50 text-[#86868b] border-b border-gray-200/50">
-                                    <th class="px-6 py-3 font-medium">日期</th>
-                                    <th class="px-6 py-3 font-medium">数据来源</th>
-                                    <th class="px-6 py-3 font-medium">天气状况</th>
-                                    <th class="px-6 py-3 font-medium">计入降雨</th>
-                                    <th class="px-6 py-3 font-medium text-right">最高温</th>
-                                    <th class="px-6 py-3 font-medium text-right">最低温</th>
+                    <!-- 加上最大高度，超出产生纵向滚动条 -->
+                    <div class="overflow-auto max-h-[520px] relative">
+                        <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
+                            <!-- thead 增加 sticky 属性，并配置 z-10 防止下方内容向上滚动时穿透 -->
+                            <thead class="sticky top-0 z-10 bg-[#fbfbfd] shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+                                <tr class="text-[#86868b]">
+                                    <!-- 使用 bg-[#fbfbfd] 给 th 上色，防穿透 -->
+                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">日期</th>
+                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">数据来源</th>
+                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">天气状况</th>
+                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">计入降雨</th>
+                                    <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最高温</th>
+                                    <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最低温</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -298,7 +310,7 @@
 <script>
     const { createApp, ref, computed, onMounted, watch, nextTick, shallowRef } = Vue;
 
-    // 核心天气字典，彻底过滤了毛毛雨（51,53,55,56,57 均标为 rain:false）
+    // 核心天气字典
     const WMO_CODES = {
         0: { desc: "晴天", icon: "☀️", rain: false },
         1: { desc: "大部晴朗", icon: "🌤️", rain: false },
@@ -306,7 +318,7 @@
         3: { desc: "阴天", icon: "☁️", rain: false },
         45: { desc: "雾", icon: "🌫️", rain: false },
         48: { desc: "结冰雾", icon: "🌫️", rain: false },
-        51: { desc: "轻微毛毛雨", icon: "🌧️", rain: false }, // 明确不计入
+        51: { desc: "轻微毛毛雨", icon: "🌧️", rain: false },
         53: { desc: "中等毛毛雨", icon: "🌧️", rain: false },
         55: { desc: "密集毛毛雨", icon: "🌧️", rain: false },
         56: { desc: "冻毛毛雨", icon: "🌧️", rain: false },
@@ -326,8 +338,8 @@
         85: { desc: "阵雪", icon: "🌨️", rain: false },
         86: { desc: "大阵雪", icon: "🌨️", rain: false },
         95: { desc: "雷暴", icon: "🌩️", rain: true },
-        96: { desc: "雷暴伴冰雹", icon: "⛈️", rain: true },
-        99: { desc: "雷暴大冰雹", icon: "⛈️", rain: true },
+        96: { desc: "强雷暴(局部极强对流)", icon: "⛈️", rain: true },
+        99: { desc: "极端雷暴(局地冰雹风险)", icon: "⛈️", rain: true },
     };
 
     createApp({
@@ -344,7 +356,7 @@
             const loading = ref(false);
             const loadingText = ref('');
 
-            // 图表实例引用
+            // 图表实例引用 (使用 shallowRef 防止 Vue Reactivity 代理 Chart 内部属性)
             const overviewChartRef = shallowRef(null);
             const lineChartRef = shallowRef(null);
 
@@ -362,21 +374,17 @@
             const dataPool = ref({});
 
             // ================= 气候基准幂等算法 =================
-            // 根据城市经纬度、月份、日期生成绝对固定的历史均值模拟
             const generateClimateBaseline = (city, year, month, day) => {
-                // 幂等哈希种子
                 const seed = Math.sin(city.lat * 12.9898 + city.lon * 78.233 + month * 4.56 + day * 1.23) * 43758.5453;
                 const rand = seed - Math.floor(seed);
 
-                // 基础气温算法：纬度越高冬天越冷，夏天趋同。以7月为顶点。
-                const seasonalOffset = Math.sin((month - 4) * Math.PI / 6); // 1月最低，7月最高
-                const latEffect = (city.lat - 20) * 0.8; // 纬度每高1度，整体降温
+                const seasonalOffset = Math.sin((month - 4) * Math.PI / 6);
+                const latEffect = (city.lat - 20) * 0.8;
                 let baseTemp = 26 - latEffect + (seasonalOffset * (latEffect + 8));
 
                 const maxTemp = Math.round(baseTemp + rand * 6);
                 const minTemp = Math.round(baseTemp - 4 - rand * 4);
 
-                // 降雨概率：南方（低纬度）夏季雨多，北方雨少。设定一个平滑概率。
                 const rainProb = city.lat < 30 ? (month >= 4 && month <= 9 ? 0.45 : 0.2) : (month >= 6 && month <= 8 ? 0.35 : 0.1);
                 const isRain = rand < rainProb;
 
@@ -391,8 +399,10 @@
 
             // ================= 数据获取与组装 =================
             const fetchMonthData = async (month) => {
-                // 如果缓存池里有该月数据，直接返回不请求
-                if (dataPool.value[currentYear.value]?.[month]) return;
+                if (dataPool.value[currentYear.value]?.[month]) {
+                    renderCharts();
+                    return;
+                }
 
                 loading.value = true;
                 loadingText.value = `正在获取 ${month} 月多维度数据...`;
@@ -404,14 +414,8 @@
                 const lats = cities.map(c => c.lat).join(',');
                 const lons = cities.map(c => c.lon).join(',');
 
-                // 1. 获取去年同月 (Archive API)
                 const urlLastYear = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${lastYear.value}-${startDateStr}&end_date=${lastYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
-
-                // 2. 获取今年相关数据 (由于既有过去，又有现在和未来，我们结合 Archive 和 Forecast)
-                // 策略：用 forecast API 尽力获取（包含过去90天和未来16天），没覆盖到的用 Archive 或 Climate Baseline
                 const urlForecast = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai&past_days=92&forecast_days=16`;
-
-                // 若月份在较远的过去，forecast覆盖不到，兜底用 archive 获取今年
                 const urlThisYearArchive = `https://archive-api.open-meteo.com/v1/archive?latitude=${lats}&longitude=${lons}&start_date=${currentYear.value}-${startDateStr}&end_date=${currentYear.value}-${endDateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia/Shanghai`;
 
                 try {
@@ -428,11 +432,9 @@
                     initYearMap(lastYear.value);
                     initYearMap(currentYear.value);
 
-                    // 解析并填充每一天
                     cities.forEach((city, cIdx) => {
                         const lyData = [], tyData = [];
 
-                        // 提取各个来源的数据条目
                         const lyApi = Array.isArray(resLastYear) ? resLastYear[cIdx] : resLastYear;
                         const fcApi = Array.isArray(resForecast) ? resForecast[cIdx] : resForecast;
                         const tyaApi = Array.isArray(resThisYearArchive) ? resThisYearArchive[cIdx] : resThisYearArchive;
@@ -442,7 +444,7 @@
                             const dateDisplay = `${month}月${d}日`;
                             const isFirstHalf = d <= 15;
 
-                            // ----- 处理去年数据 (纯归档) -----
+                            // ----- 去年数据 -----
                             const lyDate = `${lastYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             let lyInfo = { source: "历史归档", hasData: false };
                             if (lyApi && lyApi.daily && lyApi.daily.time) {
@@ -458,19 +460,17 @@
                                     };
                                 }
                             }
-                            // 去年数据若API缺失(罕见)，用基准补齐
                             if (!lyInfo.hasData) { lyInfo = { ...generateClimateBaseline(city, lastYear.value, month, d), source: "归档缺失(基准)" }; }
                             lyData.push({ date: lyDate, dateDisplay, isFirstHalf, ...lyInfo });
 
-                            // ----- 处理今年数据 (多级联匹配) -----
+                            // ----- 今年数据 -----
                             const tyDate = `${currentYear.value}-${String(month).padStart(2,'0')}-${dateNum}`;
                             const targetDateObj = new Date(currentYear.value, month - 1, d);
-                            // 重置当天时间到 0 点对比
                             const todayZero = new Date(); todayZero.setHours(0,0,0,0);
 
                             let tyInfo = null;
 
-                            // 优先级 1: 尝试在 Forecast (包含近期和未来16天) 中找
+                            // 1. Forecast 匹配
                             if (fcApi && fcApi.daily && fcApi.daily.time) {
                                 const idx = fcApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && fcApi.daily.weather_code[idx] !== null) {
@@ -486,7 +486,7 @@
                                 }
                             }
 
-                            // 优先级 2: 尝试在 This Year Archive 中找 (适用于查过去的月份)
+                            // 2. Archive 匹配
                             if (!tyInfo && tyaApi && tyaApi.daily && tyaApi.daily.time) {
                                 const idx = tyaApi.daily.time.indexOf(tyDate);
                                 if (idx !== -1 && tyaApi.daily.weather_code[idx] !== null) {
@@ -501,7 +501,7 @@
                                 }
                             }
 
-                            // 优先级 3: 超过预测极限 (16天)，或者由于数据延迟未出，使用气候基准！
+                            // 3. 基准兜底
                             if (!tyInfo) {
                                 tyInfo = generateClimateBaseline(city, currentYear.value, month, d);
                             }
@@ -515,7 +515,6 @@
 
                 } catch (e) {
                     console.error(e);
-                    alert("数据网络异常");
                 } finally {
                     loading.value = false;
                     renderCharts();
@@ -561,7 +560,6 @@
             const renderCharts = () => {
                 nextTick(() => {
                     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
-
                     if (activeView.value === 'overview') {
                         renderOverviewChart();
                     } else {
@@ -570,6 +568,7 @@
                 });
             };
 
+            // 彻底销毁旧实例，重新创建，完美解决画布重建不显示问题
             const renderOverviewChart = () => {
                 const ctx = document.getElementById('overviewChart');
                 if (!ctx) return;
@@ -578,30 +577,30 @@
                 const tyData = cities.map((_, i) => getCityRainDays(currentYear.value, i));
                 const lyData = cities.map((_, i) => getCityRainDays(lastYear.value, i));
 
+                // 强制销毁旧图表，避免新 DOM Canvas 绑定失效
                 if (overviewChartRef.value) {
-                    overviewChartRef.value.data.datasets[0].data = tyData;
-                    overviewChartRef.value.data.datasets[1].data = lyData;
-                    overviewChartRef.value.update();
-                } else {
-                    overviewChartRef.value = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels,
-                            datasets: [
-                                { label: `今年 ${selectedMonth.value}月`, data: tyData, backgroundColor: '#0071e3', borderRadius: 6 },
-                                { label: `去年 ${selectedMonth.value}月`, data: lyData, backgroundColor: '#d2d2d7', borderRadius: 6 }
-                            ]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            plugins: { legend: { position: 'top', align: 'end', labels:{ boxWidth: 12, usePointStyle: true } } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#f2f2f7' }, border: { display: false }, title: { display: true, text: '降雨天数 (天)' } },
-                                x: { grid: { display: false }, border: { display: false } }
-                            }
-                        }
-                    });
+                    overviewChartRef.value.destroy();
+                    overviewChartRef.value = null;
                 }
+
+                overviewChartRef.value = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: `今年 ${selectedMonth.value}月`, data: tyData, backgroundColor: '#0071e3', borderRadius: 6 },
+                            { label: `去年 ${selectedMonth.value}月`, data: lyData, backgroundColor: '#d2d2d7', borderRadius: 6 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'top', align: 'end', labels:{ boxWidth: 12, usePointStyle: true } } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f2f2f7' }, border: { display: false }, title: { display: true, text: '降雨天数 (天)' } },
+                            x: { grid: { display: false }, border: { display: false } }
+                        }
+                    }
+                });
             };
 
             const renderLineChart = () => {
@@ -616,66 +615,64 @@
                 const tyTemps = tyList.map(d => d.maxTemp);
                 const lyTemps = lyList.map(d => d.maxTemp);
 
-                // 为不同数据源设置不同的点样式：预测实心蓝，基准空心橙
                 const pointColors = tyList.map(d => d.source === '气候基准' ? '#f59e0b' : '#0071e3');
 
+                // 强制销毁旧图表，保障新生成的 Canvas DOM 加载成功
                 if (lineChartRef.value) {
-                    lineChartRef.value.data.labels = labels;
-                    lineChartRef.value.data.datasets[0].data = tyTemps;
-                    lineChartRef.value.data.datasets[0].pointBackgroundColor = pointColors;
-                    lineChartRef.value.data.datasets[0].pointBorderColor = pointColors;
-                    lineChartRef.value.data.datasets[1].data = lyTemps;
-                    lineChartRef.value.update();
-                } else {
-                    lineChartRef.value = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels,
-                            datasets: [
-                                {
-                                    label: `今年最高温`, data: tyTemps,
-                                    borderColor: '#0071e3', borderWidth: 2, tension: 0.3,
-                                    pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: 4, pointHoverRadius: 6
-                                },
-                                {
-                                    label: `去年最高温`, data: lyTemps,
-                                    borderColor: '#d2d2d7', borderDash: [5, 5], borderWidth: 2, tension: 0.3,
-                                    pointRadius: 0, pointHoverRadius: 4
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            interaction: { mode: 'index', intersect: false },
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: 'rgba(255,255,255,0.9)', titleColor: '#000', bodyColor: '#000',
-                                    borderColor: '#d2d2d7', borderWidth: 1, padding: 10,
-                                    callbacks: {
-                                        afterBody: (context) => {
-                                            if(context[0].datasetIndex === 0) {
-                                                const idx = context[0].dataIndex;
-                                                return `来源: ${tyList[idx].source}`;
-                                            }
+                    lineChartRef.value.destroy();
+                    lineChartRef.value = null;
+                }
+
+                lineChartRef.value = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: `今年最高温`, data: tyTemps,
+                                borderColor: '#0071e3', borderWidth: 2, tension: 0.3,
+                                pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: 4, pointHoverRadius: 6
+                            },
+                            {
+                                label: `去年最高温`, data: lyTemps,
+                                borderColor: '#d2d2d7', borderDash: [5, 5], borderWidth: 2, tension: 0.3,
+                                pointRadius: 0, pointHoverRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(255,255,255,0.9)', titleColor: '#000', bodyColor: '#000',
+                                borderColor: '#d2d2d7', borderWidth: 1, padding: 10,
+                                callbacks: {
+                                    afterBody: (context) => {
+                                        if(context[0].datasetIndex === 0) {
+                                            const idx = context[0].dataIndex;
+                                            return `来源: ${tyList[idx].source}`;
                                         }
                                     }
                                 }
-                            },
-                            scales: {
-                                y: { grid: { color: '#f2f2f7' }, border: { display: false } },
-                                x: { grid: { display: false }, border: { display: false } }
                             }
+                        },
+                        scales: {
+                            y: { grid: { color: '#f2f2f7' }, border: { display: false } },
+                            x: { grid: { display: false }, border: { display: false } }
                         }
-                    });
-                }
+                    }
+                });
             };
 
             // 监听视图切换，重新渲染对应的图表，并同步表格年份
             watch(activeView, (newVal) => {
                 tableYear.value = currentYear.value;
-                // 为了让 canvas dom 能够完成 v-if / v-show 的切换，使用 setTimeout 或 nextTick
-                setTimeout(renderCharts, 50);
+                // 用 nextTick 配合少量延迟，确保 DOM 元素已经就绪后再执行图表实例化
+                nextTick(() => {
+                    setTimeout(renderCharts, 60);
+                });
             });
 
             // ================= CSV 导出功能 =================
