@@ -95,243 +95,303 @@
 
         /* 地图图层避免穿透 */
         .leaflet-container { font-family: inherit; z-index: 10; background: #f5f5f7; }
+
+        /* 淡入动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex">
 
 <div id="app" class="flex w-full h-full relative" v-cloak>
 
-    <!-- 加载遮罩 -->
-    <div v-if="loading" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/80 backdrop-blur-md transition-opacity">
-        <div class="glass-card p-8 flex flex-col items-center shadow-xl">
-            <div class="spinner mb-4"></div>
-            <p class="text-[#1d1d1f] font-semibold">同步多维气象数据</p>
-            <p class="text-sm text-[#86868b] mt-1">{{ loadingText }}</p>
+    <!-- ================= 登录视图 ================= -->
+    <div v-if="!isLoggedIn" class="absolute inset-0 z-[100] flex items-center justify-center bg-gradient-to-br from-[#f5f5f7] to-[#e5e5ea]">
+        <div class="glass-card w-full max-w-sm p-10 flex flex-col items-center shadow-[0_20px_40px_rgba(0,0,0,0.08)] animate-fade-in">
+            <div class="w-16 h-16 bg-[#0071e3] rounded-2xl flex items-center justify-center mb-6 shadow-md text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-[#1d1d1f] tracking-tight mb-2">气候洞察系统 v4.0</h1>
+            <p class="text-sm text-[#86868b] mb-8 font-medium">请登录优购哆内部账号以继续</p>
+
+            <div class="w-full space-y-4">
+                <div class="relative">
+                    <input
+                        v-model="loginForm.username"
+                        type="text"
+                        placeholder="请输入账号"
+                        class="w-full bg-white/60 border border-white rounded-xl px-4 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/50 focus:bg-white transition-all text-[#1d1d1f] placeholder-[#86868b]"
+                        @keyup.enter="handleLogin"
+                    >
+                </div>
+                <div class="relative">
+                    <input
+                        v-model="loginForm.password"
+                        type="password"
+                        placeholder="请输入密码"
+                        class="w-full bg-white/60 border border-white rounded-xl px-4 py-3.5 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/50 focus:bg-white transition-all text-[#1d1d1f] placeholder-[#86868b]"
+                        @keyup.enter="handleLogin"
+                    >
+                </div>
+                <!-- 错误提示预留空间，防止撑开布局 -->
+                <div class="h-5 text-center">
+                    <p v-if="loginError" class="text-red-500 text-xs font-medium animate-fade-in">{{ loginError }}</p>
+                </div>
+            </div>
+
+            <button
+                @click="handleLogin"
+                class="w-full bg-[#0071e3] hover:bg-[#0077ed] active:scale-[0.98] text-white rounded-xl py-3.5 mt-2 font-semibold transition-all shadow-[0_4px_10px_rgba(0,113,227,0.3)]"
+            >
+                登录
+            </button>
         </div>
     </div>
 
-    <!-- 左侧导航 -->
-    <aside class="w-64 flex-shrink-0 bg-[#fbfbfd] border-r border-[#e5e5ea] flex flex-col h-full z-10 shadow-[2px_0_12px_rgba(0,0,0,0.02)]">
-        <div class="p-6 pb-4">
-            <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v4.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
-            <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 日更新</p>
+    <!-- ================= 主看板视图 (需登录后显示) ================= -->
+    <div v-else class="flex w-full h-full relative animate-fade-in">
+
+        <!-- 加载遮罩 -->
+        <div v-if="loading" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#f5f5f7]/80 backdrop-blur-md transition-opacity">
+            <div class="glass-card p-8 flex flex-col items-center shadow-xl">
+                <div class="spinner mb-4"></div>
+                <p class="text-[#1d1d1f] font-semibold">同步多维气象数据</p>
+                <p class="text-sm text-[#86868b] mt-1">{{ loadingText }}</p>
+            </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
-            <!-- 全局概览按钮 -->
-            <button
-                @click="activeView = 'overview'"
-                class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all mb-4 flex items-center gap-3"
-                :class="activeView === 'overview' ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#1d1d1f] hover:bg-[#e3e3e8]/60'"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                13城全局概览
-            </button>
+        <!-- 左侧导航 -->
+        <aside class="w-64 flex-shrink-0 bg-[#fbfbfd] border-r border-[#e5e5ea] flex flex-col h-full z-10 shadow-[2px_0_12px_rgba(0,0,0,0.02)]">
+            <div class="p-6 pb-4">
+                <h1 class="text-xl font-bold tracking-tight text-[#1d1d1f]">天气洞察v4.0 <span class="text-xs align-top text-[#86868b]">YGD</span></h1>
+                <p class="text-xs text-[#86868b] mt-1 tracking-wide uppercase">WMO 标准 · 日更新</p>
+            </div>
 
-            <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">优购哆·主要城市</div>
-
-            <button
-                v-for="(city, index) in cities"
-                :key="index"
-                @click="activeView = index"
-                class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between"
-                :class="activeView === index ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#3a3a3c] hover:bg-[#e3e3e8]/60'"
-            >
-                <span>{{ city.name }}</span>
-            </button>
-        </div>
-    </aside>
-
-    <!-- 右侧内容区 -->
-    <main class="flex-1 h-full overflow-y-auto bg-[#f5f5f7] relative">
-        <div class="max-w-6xl mx-auto p-8 pt-6">
-
-            <!-- 顶部工具栏 (月份选择器 & 导出) -->
-            <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 sticky top-0 z-40 bg-[#f5f5f7]/90 backdrop-blur py-4 -mt-4">
-                <div class="month-selector hide-scrollbar flex-1 max-w-full lg:max-w-3xl">
-                    <button
-                        v-for="m in 12" :key="m"
-                        :class="{ active: selectedMonth === m }"
-                        @click="changeMonth(m)"
-                    >
-                        {{ m }}月
-                    </button>
-                </div>
-
-                <button @click="exportCSV" class="flex-shrink-0 flex items-center gap-2 bg-white hover:bg-[#f2f2f7] border border-[#d2d2d7] text-[#1d1d1f] px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                    导出 {{ selectedMonth }}月 完整CSV
+            <div class="flex-1 overflow-y-auto px-4 py-2 space-y-1 hide-scrollbar">
+                <!-- 全局概览按钮 -->
+                <button
+                    @click="activeView = 'overview'"
+                    class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all mb-4 flex items-center gap-3"
+                    :class="activeView === 'overview' ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#1d1d1f] hover:bg-[#e3e3e8]/60'"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    13城全局概览
                 </button>
-            </header>
 
-            <!-- ================= 全局概览视图 ================= -->
-            <div v-show="activeView === 'overview'" class="space-y-6 animate-fade-in">
+                <div class="text-xs font-semibold text-[#86868b] uppercase tracking-wider pl-2 mb-2">优购哆·城市列表</div>
 
-                <!-- 新增：全国地图分布 -->
-                <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold tracking-tight mb-1">全国 13 城观测站分布</h2>
-                    <p class="text-[#86868b] text-sm mb-4">点击地图上的城市可直接查看气象及降雨动态雷达详情</p>
-                    <div class="h-80 w-full relative rounded-xl overflow-hidden border border-gray-200/50">
-                        <div id="chinaMap" class="w-full h-full"></div>
-                    </div>
-                </div>
-
-                <!-- 柱状图 -->
-                <div class="glass-card p-6">
-                    <h2 class="text-xl font-bold tracking-tight mb-1">降雨天数全局对比</h2>
-                    <p class="text-[#86868b] text-sm mb-6">{{ currentYear }}年{{ selectedMonth }}月 vs {{ lastYear }}年同月 (已排除 WMO 51-57 毛毛雨)</p>
-                    <div class="h-72 w-full relative">
-                        <canvas id="overviewChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- 13城 KPI Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    <div v-for="(city, i) in cities" :key="i" class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer" @click="activeView = i">
-                        <div class="font-bold text-lg mb-2">{{ city.name }}</div>
-                        <div class="flex justify-between items-end border-b border-gray-200/50 pb-2 mb-2">
-                            <span class="text-xs text-[#86868b]">今年({{ selectedMonth }}月)</span>
-                            <span class="text-xl font-bold text-[#0071e3]">{{ getCityRainDays(currentYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
-                        </div>
-                        <div class="flex justify-between items-end">
-                            <span class="text-xs text-[#86868b]">去年({{ selectedMonth }}月)</span>
-                            <span class="text-base font-medium">{{ getCityRainDays(lastYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
-                        </div>
-                    </div>
-                </div>
+                <button
+                    v-for="(city, index) in cities"
+                    :key="index"
+                    @click="activeView = index"
+                    class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between"
+                    :class="activeView === index ? 'bg-[#0071e3] text-white shadow-md' : 'text-[#3a3a3c] hover:bg-[#e3e3e8]/60'"
+                >
+                    <span>{{ city.name }}</span>
+                </button>
             </div>
 
-            <!-- ================= 单城市详情视图 ================= -->
-            <div v-if="activeView !== 'overview'" class="space-y-6 animate-fade-in">
-
-                <h2 class="text-3xl font-bold tracking-tight flex items-baseline gap-3">
-                    {{ activeCity.name }}
-                    <span class="text-xl text-[#86868b] font-medium">{{ currentYear }}年{{ selectedMonth }}月 气象洞察</span>
-                </h2>
-
-                <!-- KPI 卡片 -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass-card p-6 flex flex-col justify-between">
-                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">☔️ 总降雨天数</div>
-                        <div class="flex items-end gap-3 mt-2">
-                            <span class="text-4xl font-bold">{{ kpiData.thisYear.totalRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
-                            <span class="text-[#86868b]">同比去年</span>
-                            <span class="font-medium">{{ kpiData.lastYear.totalRain }} 天</span>
-                        </div>
-                    </div>
-                    <div class="glass-card p-6 flex flex-col justify-between">
-                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">📅 上半月降雨 (1-15日)</div>
-                        <div class="flex items-end gap-3 mt-2">
-                            <span class="text-4xl font-bold text-[#0071e3]">{{ kpiData.thisYear.firstHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
-                            <span class="text-[#86868b]">去年同期</span>
-                            <span class="font-medium">{{ kpiData.lastYear.firstHalfRain }} 天</span>
-                        </div>
-                    </div>
-                    <div class="glass-card p-6 flex flex-col justify-between">
-                        <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">🗓️ 下半月降雨 (16日后)</div>
-                        <div class="flex items-end gap-3 mt-2">
-                            <span class="text-4xl font-bold text-indigo-500">{{ kpiData.thisYear.secondHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
-                            <span class="text-[#86868b]">去年同期</span>
-                            <span class="font-medium">{{ kpiData.lastYear.secondHalfRain }} 天</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 新增：48小时动态降雨雷达 (Windy 引擎) -->
-                <div class="glass-card p-6">
-                    <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
-                        📡 局部雷达观测图 <span class="text-xs font-normal text-[#86868b] bg-gray-100 px-2 py-0.5 rounded-full">48小时动态预测</span>
-                    </h3>
-                    <p class="text-[#86868b] text-sm mb-4">可点击底部播放按钮，查看本地区未来48小时内的降雨云团运动轨迹。</p>
-                    <div class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200/50 relative bg-[#e3e3e8]">
-                        <!-- 动态生成当前城市的雷达 iframe -->
-                        <iframe v-if="activeView !== 'overview'" :src="windyUrl" class="w-full h-full border-0"></iframe>
-                    </div>
-                </div>
-
-                <!-- 折线图 -->
-                <div class="glass-card p-6">
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
-                        <div>
-                            <h3 class="text-lg font-bold">最高温走势 & 数据分布</h3>
-                            <p class="text-xs text-[#86868b] mt-1">融合历史归档、气象台16天预测与30年气候基准推演</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3 text-xs">
-                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#0071e3]"></span> 今年</span>
-                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#d2d2d7]"></span> 去年</span>
-                            <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                            <span class="badge badge-archive">历史数据</span>
-                            <span class="badge badge-forecast">实时预报</span>
-                            <span class="badge badge-climate">气候基准</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            注：WMO气象模型通过高空雷达回波计算强对流(如WOM 96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
-                        </p>
-                    </div>
-
-                    <div class="h-64 w-full">
-                        <canvas id="cityLineChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- 详情表格 -->
-                <div class="glass-card overflow-hidden">
-                    <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
-                        <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
-                        <button :class="tableYear === lastYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = lastYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">去年 ({{ lastYear }})</button>
-                    </div>
-                    <div class="overflow-auto max-h-[420px] relative">
-                        <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
-                            <thead class="sticky top-0 z-10 bg-[#fbfbfd] shadow-[0_1px_0_rgba(0,0,0,0.05)]">
-                                <tr class="text-[#86868b]">
-                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">日期</th>
-                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">数据来源</th>
-                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">天气状况</th>
-                                    <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">计入降雨</th>
-                                    <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最高温</th>
-                                    <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最低温</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-white/60 transition-colors">
-                                    <td class="px-6 py-3.5 font-medium">{{ day.dateDisplay }} <span class="text-xs text-gray-400 ml-1">({{ day.isFirstHalf ? '上半月' : '下半月' }})</span></td>
-                                    <td class="px-6 py-3.5">
-                                        <span class="badge" :class="{'badge-archive': day.source==='历史归档', 'badge-forecast': day.source==='实时预测', 'badge-climate': day.source==='气候基准'}">
-                                            {{ day.source }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-3.5">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-lg">{{ day.icon }}</span>
-                                            <span>{{ day.desc }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-3.5">
-                                        <span v-if="day.isRain" class="inline-flex items-center gap-1 font-semibold text-[#0071e3]"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
-                                        <span v-else class="text-[#86868b]">否</span>
-                                    </td>
-                                    <td class="px-6 py-3.5 text-right font-semibold text-red-500/80">{{ day.maxTemp }}°C</td>
-                                    <td class="px-6 py-3.5 text-right font-semibold text-blue-500/80">{{ day.minTemp }}°C</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <!-- 底部退出登录信息 -->
+            <div class="p-4 border-t border-[#e5e5ea] flex justify-between items-center">
+                <span class="text-xs text-[#86868b] font-medium">{{ currentUser }}</span>
+                <button @click="handleLogout" class="text-xs text-[#0071e3] hover:underline font-medium">退出登录</button>
             </div>
+        </aside>
 
-            <div class="h-16"></div> <!-- 底部留白 -->
-        </div>
-    </main>
+        <!-- 右侧内容区 -->
+        <main class="flex-1 h-full overflow-y-auto bg-[#f5f5f7] relative">
+            <div class="max-w-6xl mx-auto p-8 pt-6">
+
+                <!-- 顶部工具栏 (月份选择器 & 导出) -->
+                <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 sticky top-0 z-40 bg-[#f5f5f7]/90 backdrop-blur py-4 -mt-4">
+                    <div class="month-selector hide-scrollbar flex-1 max-w-full lg:max-w-3xl">
+                        <button
+                            v-for="m in 12" :key="m"
+                            :class="{ active: selectedMonth === m }"
+                            @click="changeMonth(m)"
+                        >
+                            {{ m }}月
+                        </button>
+                    </div>
+
+                    <button @click="exportCSV" class="flex-shrink-0 flex items-center gap-2 bg-white hover:bg-[#f2f2f7] border border-[#d2d2d7] text-[#1d1d1f] px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        导出 {{ selectedMonth }}月 完整CSV
+                    </button>
+                </header>
+
+                <!-- ================= 全局概览视图 ================= -->
+                <div v-show="activeView === 'overview'" class="space-y-6 animate-fade-in">
+
+                    <!-- 新增：全国地图分布 -->
+                    <div class="glass-card p-6">
+                        <h2 class="text-xl font-bold tracking-tight mb-1">全国 13 城观测站分布</h2>
+                        <p class="text-[#86868b] text-sm mb-4">点击地图上的城市可直接查看气象及降雨动态雷达详情</p>
+                        <div class="h-80 w-full relative rounded-xl overflow-hidden border border-gray-200/50">
+                            <div id="chinaMap" class="w-full h-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- 柱状图 -->
+                    <div class="glass-card p-6">
+                        <h2 class="text-xl font-bold tracking-tight mb-1">降雨天数全局对比</h2>
+                        <p class="text-[#86868b] text-sm mb-6">{{ currentYear }}年{{ selectedMonth }}月 vs {{ lastYear }}年同月 (已排除 WMO 51-57 毛毛雨)</p>
+                        <div class="h-72 w-full relative">
+                            <canvas id="overviewChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 13城 KPI Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        <div v-for="(city, i) in cities" :key="i" class="glass-card p-4 hover:shadow-lg transition-shadow cursor-pointer" @click="activeView = i">
+                            <div class="font-bold text-lg mb-2">{{ city.name }}</div>
+                            <div class="flex justify-between items-end border-b border-gray-200/50 pb-2 mb-2">
+                                <span class="text-xs text-[#86868b]">今年({{ selectedMonth }}月)</span>
+                                <span class="text-xl font-bold text-[#0071e3]">{{ getCityRainDays(currentYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
+                            </div>
+                            <div class="flex justify-between items-end">
+                                <span class="text-xs text-[#86868b]">去年({{ selectedMonth }}月)</span>
+                                <span class="text-base font-medium">{{ getCityRainDays(lastYear, i) }}<span class="text-xs font-normal text-gray-500 ml-1">天</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= 单城市详情视图 ================= -->
+                <div v-if="activeView !== 'overview'" class="space-y-6 animate-fade-in">
+
+                    <h2 class="text-3xl font-bold tracking-tight flex items-baseline gap-3">
+                        {{ activeCity.name }}
+                        <span class="text-xl text-[#86868b] font-medium">{{ currentYear }}年{{ selectedMonth }}月 气象洞察</span>
+                    </h2>
+
+                    <!-- KPI 卡片 -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="glass-card p-6 flex flex-col justify-between">
+                            <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">☔️ 总降雨天数</div>
+                            <div class="flex items-end gap-3 mt-2">
+                                <span class="text-4xl font-bold">{{ kpiData.thisYear.totalRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                                <span class="text-[#86868b]">同比去年</span>
+                                <span class="font-medium">{{ kpiData.lastYear.totalRain }} 天</span>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 flex flex-col justify-between">
+                            <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">📅 上半月降雨 (1-15日)</div>
+                            <div class="flex items-end gap-3 mt-2">
+                                <span class="text-4xl font-bold text-[#0071e3]">{{ kpiData.thisYear.firstHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                                <span class="text-[#86868b]">去年同期</span>
+                                <span class="font-medium">{{ kpiData.lastYear.firstHalfRain }} 天</span>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 flex flex-col justify-between">
+                            <div class="text-[#86868b] text-sm font-semibold mb-2 flex items-center gap-2">🗓️ 下半月降雨 (16日后)</div>
+                            <div class="flex items-end gap-3 mt-2">
+                                <span class="text-4xl font-bold text-indigo-500">{{ kpiData.thisYear.secondHalfRain }}<span class="text-lg font-normal text-[#86868b] ml-1">天</span></span>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-200/50 flex justify-between text-sm">
+                                <span class="text-[#86868b]">去年同期</span>
+                                <span class="font-medium">{{ kpiData.lastYear.secondHalfRain }} 天</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 48小时动态降雨雷达 (Windy 引擎) -->
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-bold mb-1 flex items-center gap-2">
+                            📡 局部雷达观测图 <span class="text-xs font-normal text-[#86868b] bg-gray-100 px-2 py-0.5 rounded-full">48小时动态预测</span>
+                        </h3>
+                        <p class="text-[#86868b] text-sm mb-4">可点击底部播放按钮，查看本地区未来48小时内的降雨云团运动轨迹。</p>
+                        <div class="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200/50 relative bg-[#e3e3e8]">
+                            <!-- 动态生成当前城市的雷达 iframe -->
+                            <iframe v-if="activeView !== 'overview'" :src="windyUrl" class="w-full h-full border-0"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- 折线图 -->
+                    <div class="glass-card p-6">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold">最高温走势 & 数据分布</h3>
+                                <p class="text-xs text-[#86868b] mt-1">融合历史归档、气象台16天预测与30年气候基准推演</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-xs">
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#0071e3]"></span> 今年</span>
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#d2d2d7]"></span> 去年</span>
+                                <div class="h-4 w-[1px] bg-gray-300 mx-1"></div>
+                                <span class="badge badge-archive">历史数据</span>
+                                <span class="badge badge-forecast">实时预报</span>
+                                <span class="badge badge-climate">气候基准</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50/50 border border-blue-100 rounded-lg p-3 flex items-start gap-2 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                注：WMO气象模型通过高空雷达回波计算强对流(如代码96/99)。华南夏季由于地表高温，高空冰雹在落地前通常已融化为降水。图表所展示的“极强对流(冰雹风险)”意在提示降水强度极高，实际情况请以地表观测为准。
+                            </p>
+                        </div>
+
+                        <div class="h-64 w-full">
+                            <canvas id="cityLineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 详情表格 -->
+                    <div class="glass-card overflow-hidden">
+                        <div class="p-4 border-b border-gray-200/50 bg-white/40 flex gap-2">
+                            <button :class="tableYear === currentYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = currentYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">今年 ({{ currentYear }})</button>
+                            <button :class="tableYear === lastYear ? 'bg-white shadow-sm text-black font-semibold' : 'text-[#86868b] hover:bg-white/50'" @click="tableYear = lastYear" class="px-4 py-1.5 rounded-lg text-sm transition-all">去年 ({{ lastYear }})</button>
+                        </div>
+                        <div class="overflow-auto max-h-[420px] relative">
+                            <table class="w-full text-left text-sm whitespace-nowrap border-collapse">
+                                <thead class="sticky top-0 z-10 bg-[#fbfbfd] shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+                                    <tr class="text-[#86868b]">
+                                        <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">日期</th>
+                                        <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">数据来源</th>
+                                        <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">天气状况</th>
+                                        <th class="px-6 py-3 font-semibold bg-[#fbfbfd]">计入降雨</th>
+                                        <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最高温</th>
+                                        <th class="px-6 py-3 font-semibold text-right bg-[#fbfbfd]">最低温</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <tr v-for="day in activeTableData" :key="day.date" class="hover:bg-white/60 transition-colors">
+                                        <td class="px-6 py-3.5 font-medium">{{ day.dateDisplay }} <span class="text-xs text-gray-400 ml-1">({{ day.isFirstHalf ? '上半月' : '下半月' }})</span></td>
+                                        <td class="px-6 py-3.5">
+                                            <span class="badge" :class="{'badge-archive': day.source==='历史归档', 'badge-forecast': day.source==='实时预测', 'badge-climate': day.source==='气候基准'}">
+                                                {{ day.source }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-3.5">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-lg">{{ day.icon }}</span>
+                                                <span>{{ day.desc }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-3.5">
+                                            <span v-if="day.isRain" class="inline-flex items-center gap-1 font-semibold text-[#0071e3]"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"/><path d="M8 13v8"/><path d="M12 15v8"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg> 是</span>
+                                            <span v-else class="text-[#86868b]">否</span>
+                                        </td>
+                                        <td class="px-6 py-3.5 text-right font-semibold text-red-500/80">{{ day.maxTemp }}°C</td>
+                                        <td class="px-6 py-3.5 text-right font-semibold text-blue-500/80">{{ day.minTemp }}°C</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-16"></div> <!-- 底部留白 -->
+            </div>
+        </main>
+    </div>
 </div>
 
 <script>
@@ -369,9 +429,52 @@
         99: { desc: "极端雷暴(局地冰雹风险)", icon: "⛈️", rain: true },
     };
 
+    // 授权账号映射字典
+    const AUTHORIZED_ACCOUNTS = {
+        'ygd_yunyingbu': 'ygd_yunyingbu123',
+        'ygd_mdyy': 'ygd_mdyy001',
+        'ygd_shujubu': 'ygd_shujubu456',
+        'ygd_buhuozu': 'ygd_buhuozu789',
+        'ygd_gongyinglian': 'ygd_buhuozu10' // 如需修正为 ygd_gongyinglian123 可自行调整，此处按要求录入
+    };
+
     createApp({
         setup() {
-            // 系统状态
+            // ================= 登录状态管理 =================
+            const isLoggedIn = ref(false);
+            const loginForm = ref({ username: '', password: '' });
+            const loginError = ref('');
+            const currentUser = ref('');
+
+            const handleLogin = () => {
+                const { username, password } = loginForm.value;
+                if (!username.trim() || !password.trim()) {
+                    loginError.value = "请输入账号和密码";
+                    return;
+                }
+
+                if (AUTHORIZED_ACCOUNTS[username] && AUTHORIZED_ACCOUNTS[username] === password) {
+                    isLoggedIn.value = true;
+                    currentUser.value = username;
+                    loginError.value = "";
+                    // 登录成功后，才开始获取数据并加载仪表盘
+                    fetchMonthData(selectedMonth.value);
+                } else {
+                    loginError.value = "账号或密码不正确，请重新输入";
+                }
+            };
+
+            const handleLogout = () => {
+                isLoggedIn.value = false;
+                loginForm.value.password = '';
+                currentUser.value = '';
+                // 登出时销毁原有的图表和地图数据
+                if (overviewChartRef.value) { overviewChartRef.value.destroy(); overviewChartRef.value = null; }
+                if (lineChartRef.value) { lineChartRef.value.destroy(); lineChartRef.value = null; }
+                if (mapRef.value) { mapRef.value.remove(); mapRef.value = null; }
+            };
+
+            // ================= 系统状态 =================
             const today = new Date();
             const currentYear = ref(today.getFullYear());
             const lastYear = ref(currentYear.value - 1);
@@ -405,7 +508,6 @@
             const windyUrl = computed(() => {
                 if (activeView.value === 'overview') return '';
                 const c = cities[activeView.value];
-                // 接入了降雨(rain)图层，定位到当前城市，带有 marker，默认放大层级为 8
                 return `https://embed.windy.com/embed2.html?lat=${c.lat}&lon=${c.lon}&zoom=8&level=surface&overlay=rain&product=ecmwf&marker=true&type=map&metricRain=mm&metricTemp=%C2%B0C`;
             });
 
@@ -585,6 +687,9 @@
 
             // 统一调度的渲染控制器
             const renderVisuals = () => {
+                // 如果用户被退出了，就不渲染
+                if (!isLoggedIn.value) return;
+
                 nextTick(() => {
                     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
                     if (activeView.value === 'overview') {
@@ -774,11 +879,15 @@
                 link.click();
             };
 
+            // 初始组件挂载时，因为默认是未登录状态，这里去掉了原本的 fetchMonthData 调用。
             onMounted(() => {
-                fetchMonthData(selectedMonth.value);
+               // 移至 handleLogin 中触发
             });
 
             return {
+                // 登录暴露项
+                isLoggedIn, loginForm, loginError, handleLogin, handleLogout, currentUser,
+                // 原有暴露项
                 cities, activeView, activeCity, currentYear, lastYear, selectedMonth, tableYear,
                 loading, loadingText, activeTableData, kpiData, windyUrl,
                 changeMonth, getCityRainDays, exportCSV
