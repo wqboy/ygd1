@@ -450,7 +450,7 @@ body{
     <div style="background:rgba(0,113,227,0.05);border:1px solid rgba(0,113,227,0.12);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;">
       <svg style="flex-shrink:0;margin-top:1px;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       <p style="font-size:12px;color:#3a3a3c;line-height:1.6;margin:0;">
-        <strong>v5.1 数据策略：</strong>今日及未来7天优先采用和风天气实况/预报（更贴近地面）；过去历史优先采用Open-Meteo归档数据，forecast回填数据标注为「模型回推」请谨慎参考；<strong>降雨判断改为 precipitation_sum &gt; 1mm</strong>，不再依赖 WMO 天气码，减少模型雷暴误报。
+        <strong>v5.1 数据策略：</strong>今日及未来7天优先采用和风天气实况/预报（更贴近地面）；过去历史优先采用Open-Meteo归档数据，forecast回填数据标注为「模型回推」请谨慎参考；<strong>降雨判断改为 precipitation_sum &gt; 3mm</strong>，不再依赖 WMO 天气码，减少模型雷暴误报。
       </p>
     </div>
 
@@ -640,7 +640,7 @@ createApp({
           result[d.fxDate] = {
             source: '和风预报',
             precip,
-            isRain: precip > 1,
+            isRain: precip > 3,
             maxTemp: parseInt(d.tempMax),
             minTemp: parseInt(d.tempMin),
             desc: d.textDay || '未知',
@@ -657,7 +657,7 @@ createApp({
           // 实况补充降水量，温度用实况
           result[todayStr].source = '和风实况';
           result[todayStr].precip = precip;
-          result[todayStr].isRain = precip > 1;
+          result[todayStr].isRain = precip > 3;
           result[todayStr].desc = n.text || result[todayStr].desc;
           result[todayStr].icon = qwIcon(n.icon);
         }
@@ -743,7 +743,7 @@ createApp({
                 lyI = {
                   source: '历史归档',
                   precip,
-                  isRain: precip !== null ? precip > 1 : false,
+                  isRain: precip !== null ? precip > 3 : false,
                   desc: w.desc, icon: w.icon,
                   maxTemp: Math.round(lyA.daily.temperature_2m_max[idx]),
                   minTemp: Math.round(lyA.daily.temperature_2m_min[idx])
@@ -773,7 +773,7 @@ createApp({
                 tyI = {
                   source: '历史归档',
                   precip,
-                  isRain: precip !== null ? precip > 1 : false,
+                  isRain: precip !== null ? precip > 3 : false,
                   desc: w.desc, icon: w.icon,
                   maxTemp: Math.round(tyA.daily.temperature_2m_max[idx]),
                   minTemp: Math.round(tyA.daily.temperature_2m_min[idx])
@@ -793,7 +793,7 @@ createApp({
                 tyI = {
                   source: isFuture ? '预测' : '模型回推',
                   precip,
-                  isRain: precip !== null ? precip > 1 : false,
+                  isRain: precip !== null ? precip > 3 : false,
                   desc: w.desc, icon: w.icon,
                   maxTemp: Math.round(fcA.daily.temperature_2m_max[idx]),
                   minTemp: Math.round(fcA.daily.temperature_2m_min[idx])
